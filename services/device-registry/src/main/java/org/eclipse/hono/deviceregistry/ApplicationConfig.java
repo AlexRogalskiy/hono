@@ -266,4 +266,17 @@ public class ApplicationConfig {
         }
         return RegistrationAssertionHelperImpl.forSigning(vertx(), serviceProps.getSigning());
     }
+
+/*    @Bean
+    @ConditionalOnProperty(name = "hono.app.type", havingValue = "file", matchIfMissing = true)
+    public CredentialsService fileBasedCredentialsService() {
+        return new FileBasedCredentialsService();
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "hono.app.type", havingValue = "dummy")
+    public CredentialsService dummyBasedCredentialsService() {
+        return new DummyRegistry();
+    }*/
+
 }
