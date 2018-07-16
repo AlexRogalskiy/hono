@@ -374,7 +374,7 @@ public abstract class BaseRegistrationService<T> extends EventBusService<T> impl
     /**
      * Handles an unimplemented operation by failing the given handler
      * with a {@link ClientErrorException} having a <em>501 Not Implemented</em> status code.
-     * 
+     *
      * @param resultHandler The handler.
      */
     protected void handleUnimplementedOperation(final Handler<AsyncResult<RegistrationResult>> resultHandler) {

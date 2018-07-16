@@ -38,7 +38,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 
-
 /**
  * A credentials service that keeps all data in memory but is backed by a file.
  * <p>
