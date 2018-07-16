@@ -17,7 +17,7 @@ import io.vertx.core.json.JsonObject;
 import org.eclipse.hono.service.tenant.BaseTenantService;
 import org.eclipse.hono.util.TenantObject;
 import org.eclipse.hono.util.TenantResult;
-import org.springframework.context.annotation.Primary;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.net.HttpURLConnection;
@@ -26,12 +26,11 @@ import java.net.HttpURLConnection;
  *
  */
 @Service
-@Primary
+@ConditionalOnProperty(name = "hono.app.type", havingValue = "dummy")
 public class DummyTenantService extends BaseTenantService<Object> {
 
     @Override
     public void setConfig(final Object configuration) {
-
     }
 
     @Override

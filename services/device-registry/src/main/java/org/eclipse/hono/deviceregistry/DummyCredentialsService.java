@@ -18,7 +18,7 @@ import org.eclipse.hono.service.credentials.BaseCredentialsService;
 import org.eclipse.hono.util.CacheDirective;
 import org.eclipse.hono.util.CredentialsObject;
 import org.eclipse.hono.util.CredentialsResult;
-import org.springframework.context.annotation.Primary;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.net.HttpURLConnection;
@@ -27,7 +27,7 @@ import java.net.HttpURLConnection;
  *
  */
 @Service
-@Primary
+@ConditionalOnProperty(name = "hono.app.type", havingValue = "dummy")
 public final class DummyCredentialsService extends BaseCredentialsService<Object> {
 
     @Override

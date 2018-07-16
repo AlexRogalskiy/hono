@@ -16,7 +16,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import org.eclipse.hono.service.registration.BaseRegistrationService;
 import org.eclipse.hono.util.RegistrationResult;
-import org.springframework.context.annotation.Primary;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.net.HttpURLConnection;
@@ -25,7 +25,7 @@ import java.net.HttpURLConnection;
  *
  */
 @Service
-@Primary
+@ConditionalOnProperty(name = "hono.app.type", havingValue = "dummy")
 public class DummyRegistrationService extends BaseRegistrationService<Object> {
 
     @Override
