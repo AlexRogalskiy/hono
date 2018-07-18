@@ -39,6 +39,16 @@
 
   <profiles>
     <profile>
+      <id>jaeger</id>
+      <dependencies>
+        <dependency>
+          <groupId>io.jaegertracing</groupId>
+          <artifactId>jaeger-client</artifactId>
+          <version>0.30.2</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
       <id>build-docker-image</id>
       <activation>
         <property>

@@ -178,6 +178,23 @@ objects:
 - kind: ImageStream
   apiVersion: v1
   metadata:
+    name: jaeger-agent
+  spec:
+    lookupPolicy:
+      local: false
+    tags:
+    - name: "latest"
+      from:
+        kind: DockerImage
+        name: docker.io/jaegertracing/jaeger-agent:latest
+      importPolicy:
+        scheduled: true
+      referencePolicy:
+        type: Source
+
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
     name: fabric8-s2i-java
   spec:
     tags:
@@ -967,6 +984,15 @@ objects:
             kind: ImageStreamTag
             name: hono-service-device-registry:latest
 
+      - type: ImageChange
+        imageChangeParams:
+          automatic: true
+          containerNames:
+            - jaeger-agent
+          from:
+            kind: ImageStreamTag
+            name: jaeger-agent:latest
+
     template:
       metadata:
         labels:
@@ -1142,6 +1168,23 @@ objects:
           - mountPath: /etc/tls
             name: tls
             readOnly: true
+
+        - image: jaeger-agent
+          name: jaeger-agent
+          ports:
+          - containerPort: 5775
+            protocol: UDP
+          - containerPort: 5778
+          - containerPort: 6831
+            protocol: UDP
+          - containerPort: 6832
+            protocol: UDP
+          command:
+            - "/go/bin/agent-linux"
+            - "--collector.host-port=jaeger-collector.jaeger.svc:14267"
+          env:
+            - name: JAEGER_SERVICE_NAME
+              value: hono-adapter-http
 
         nodeSelector:
           node-role.kubernetes.io/compute: "true"
