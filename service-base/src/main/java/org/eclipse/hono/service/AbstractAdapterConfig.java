@@ -20,6 +20,7 @@ import org.eclipse.hono.client.HonoClient;
 import org.eclipse.hono.client.RequestResponseClientConfigProperties;
 import org.eclipse.hono.client.impl.HonoClientImpl;
 import org.eclipse.hono.config.ClientConfigProperties;
+import org.eclipse.hono.config.VertxProperties;
 import org.eclipse.hono.service.cache.SpringCacheProvider;
 import org.eclipse.hono.service.command.CommandConfigProperties;
 import org.eclipse.hono.service.command.CommandConnection;
@@ -94,9 +95,13 @@ public abstract class AbstractAdapterConfig {
                         .setCacheNegativeTimeToLive(0) // discard failed DNS lookup results immediately
                         .setCacheMaxTimeToLive(0) // support DNS based service resolution
                         .setQueryTimeout(1000));
+
         if (metricsOptions != null) {
             options.setMetricsOptions(metricsOptions);
         }
+
+        vertxProperties().configureVertx(options);
+
         return Vertx.vertx(options);
     }
 
@@ -324,6 +329,17 @@ public abstract class AbstractAdapterConfig {
     @Scope("prototype")
     public CommandConnection commandConnection() {
         return new CommandConnectionImpl(vertx(), commandConnectionClientConfig());
+    }
+
+    /**
+     * Exposes configuration options for vertx.
+     * 
+     * @return The Properties.
+     */
+    @ConfigurationProperties("hono.vertx")
+    @Bean
+    public VertxProperties vertxProperties() {
+        return new VertxProperties();
     }
 
     /**

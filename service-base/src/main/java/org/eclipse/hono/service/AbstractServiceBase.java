@@ -212,6 +212,8 @@ public abstract class AbstractServiceBase<T extends ServiceConfigProperties> ext
      */
     protected final Future<Void> checkPortConfiguration() {
 
+        LOG.info("Vertx native support: {}", vertx.isNativeTransportEnabled());
+
         final Future<Void> result = Future.future();
 
         if (getConfig().getKeyCertOptions() == null) {
@@ -387,7 +389,7 @@ public abstract class AbstractServiceBase<T extends ServiceConfigProperties> ext
             final boolean isOpenSslAvailable = OpenSsl.isAvailable();
             final boolean supportsKeyManagerFactory =  OpenSsl.supportsKeyManagerFactory();
             final boolean useOpenSsl =
-                    getConfig().isNativeTlsRequired() || (isOpenSslAvailable && supportsKeyManagerFactory);
+                    getConfig().isNativeTlsRequired() || isOpenSslAvailable && supportsKeyManagerFactory;
 
             LOG.debug("OpenSSL [available: {}, supports KeyManagerFactory: {}]",
                     isOpenSslAvailable, supportsKeyManagerFactory);
