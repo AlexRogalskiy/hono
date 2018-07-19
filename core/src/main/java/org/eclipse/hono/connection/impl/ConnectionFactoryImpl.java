@@ -13,9 +13,15 @@
 
 package org.eclipse.hono.connection.impl;
 
+import static java.lang.System.getenv;
+import static java.util.Optional.ofNullable;
+
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
+import org.apache.qpid.proton.amqp.Symbol;
 import org.apache.qpid.proton.amqp.transport.ErrorCondition;
 import org.eclipse.hono.config.ClientConfigProperties;
 import org.eclipse.hono.connection.ConnectionFactory;
@@ -159,6 +165,7 @@ public final class ConnectionFactoryImpl implements ConnectionFactory {
             final ProtonConnection downstreamConnection = conAttempt.result();
             downstreamConnection
                     .setContainer(String.format("%s-%s", config.getName(), UUID.randomUUID()))
+                    .setProperties(getOpenProperties())
                     .setHostname(config.getAmqpHostname())
                     .openHandler(openCon -> {
                         if (openCon.succeeded()) {
@@ -188,6 +195,17 @@ public final class ConnectionFactoryImpl implements ConnectionFactory {
                                 .failedFuture("underlying connection was disconnected while opening AMQP connection"));
                     }).open();
         }
+    }
+
+    private Map<Symbol, Object> getOpenProperties() {
+
+        final Map<Symbol, Object> properties = new HashMap<>();
+        properties.put(Symbol.valueOf("protocol-adapter"), getName());
+
+        ofNullable(getenv("HOSTNAME"))
+                .ifPresent(hostname -> properties.put(Symbol.valueOf("hostname"), hostname));
+
+        return properties;
     }
 
     private void addOptions(final ProtonClientOptions clientOptions, final String username, final String password) {
