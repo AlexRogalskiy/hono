@@ -614,6 +614,8 @@ objects:
           - mountPath: /etc/tls
             name: tls
             readOnly: true
+        nodeSelector:
+          node-role.kubernetes.io/compute: "true"
         volumes:
         - name: conf
           configMap:
@@ -955,6 +957,8 @@ objects:
           - mountPath: /etc/tls
             name: tls
             readOnly: true
+        nodeSelector:
+          node-role.kubernetes.io/compute: "true"
         volumes:
         - name: conf
           configMap:
@@ -1292,6 +1296,8 @@ objects:
           - mountPath: /etc/tls
             name: tls
             readOnly: true
+        nodeSelector:
+          node-role.kubernetes.io/compute: "true"
         volumes:
         - name: registry
           persistentVolumeClaim:
@@ -1653,6 +1659,8 @@ objects:
           - mountPath: /etc/tls
             name: tls
             readOnly: true
+        nodeSelector:
+          node-role.kubernetes.io/compute: "true"
         volumes:
         - name: conf
           configMap:
