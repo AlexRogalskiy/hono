@@ -16,6 +16,7 @@ package org.eclipse.hono.service;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -117,7 +118,15 @@ public class AbstractApplication implements ApplicationRunner {
      * 
      * @param args The command line arguments provided to the application.
      */
+    @Override
     public void run(final ApplicationArguments args) {
+
+        log.info("JVM properties:");
+        for (final Map.Entry<Object, Object> entry : System.getProperties().entrySet()) {
+            if (entry.getKey() != null && entry.getKey().toString().startsWith("java.vm.")) {
+                log.info("\t'{}' = '{}'", entry.getKey(), entry.getValue());
+            }
+        }
 
         if (vertx == null) {
             throw new IllegalStateException("no Vert.x instance has been configured");
@@ -146,14 +155,14 @@ public class AbstractApplication implements ApplicationRunner {
         try {
             log.debug("Waiting for {} seconds to start up", startupTimeoutSeconds);
             started.get(startupTimeoutSeconds, TimeUnit.SECONDS);
-        } catch (TimeoutException e) {
+        } catch (final TimeoutException e) {
             log.error("startup timed out after {} seconds, shutting down ...", startupTimeoutSeconds);
             shutdown();
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             log.error("startup process has been interrupted, shutting down ...");
             Thread.currentThread().interrupt();
             shutdown();
-        } catch (ExecutionException e) {
+        } catch (final ExecutionException e) {
             log.error("exception occurred during startup, shutting down ...", e);
             shutdown();
         }
@@ -165,7 +174,7 @@ public class AbstractApplication implements ApplicationRunner {
         @SuppressWarnings("rawtypes")
         final List<Future> deploymentTracker = new ArrayList<>();
 
-        for (ObjectFactory<? extends AbstractServiceBase<?>> serviceFactory : serviceFactories) {
+        for (final ObjectFactory<? extends AbstractServiceBase<?>> serviceFactory : serviceFactories) {
 
             AbstractServiceBase<?> serviceInstance = serviceFactory.getObject();
 
@@ -250,7 +259,7 @@ public class AbstractApplication implements ApplicationRunner {
                 log.error("shut down timed out, aborting...");
                 shutdownHandler.handle(Boolean.FALSE);
             }
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             log.error("application shut down has been interrupted, aborting...");
             Thread.currentThread().interrupt();
             shutdownHandler.handle(Boolean.FALSE);
