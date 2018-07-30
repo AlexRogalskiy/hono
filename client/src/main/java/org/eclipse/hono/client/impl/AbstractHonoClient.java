@@ -414,12 +414,18 @@ public abstract class AbstractHonoClient {
             receiver.setAutoAccept(true);
             receiver.setQoS(qos);
             receiver.setPrefetch(clientConfig.getInitialCredits());
+            LOG.info("opening received - prefetch: {}", receiver.getPrefetch());
             receiver.handler((delivery, message) -> {
+                try {
                 messageHandler.handle(delivery, message);
                 if (LOG.isTraceEnabled()) {
                     final int remainingCredits = receiver.getCredit() - receiver.getQueued();
                     LOG.trace("handling message [remotely settled: {}, queued messages: {}, remaining credit: {}]",
                             delivery.remotelySettled(), receiver.getQueued(), remainingCredits);
+                }
+                } catch (final Exception e) {
+                    LOG.info("message handler failed", e);
+                    throw e;
                 }
             });
             receiver.openHandler(recvOpen -> {
