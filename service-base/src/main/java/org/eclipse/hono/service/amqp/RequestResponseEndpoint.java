@@ -272,7 +272,11 @@ public abstract class RequestResponseEndpoint<T extends ServiceConfigProperties>
                     return Future.succeededFuture(response.getResponse(status));
                 }).map(filteredResponse -> {
                     final Message amqpReply = getAmqpReply(filteredResponse);
-                    sender.send(amqpReply);
+                            logger.debug("Sending result - open:{}, sendQueueFull: {}, credit:  {}", sender.isOpen(),
+                                    sender.sendQueueFull(), sender.getCredit());
+                            if (sender.isOpen() && !sender.sendQueueFull()) {
+                                sender.send(amqpReply);
+                            }
                     return null;
                 });
             });
