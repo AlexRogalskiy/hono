@@ -230,7 +230,9 @@ public abstract class HonoAuthHandler implements AuthHandler {
               ctx.fail(exception);
               return;
             default:
-              ctx.fail(exception);
+                    if (!ctx.response().ended()) {
+                        ctx.fail(exception);
+                    }
               return;
           }
         }
