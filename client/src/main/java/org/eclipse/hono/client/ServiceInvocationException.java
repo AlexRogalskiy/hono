@@ -13,11 +13,16 @@
 
 package org.eclipse.hono.client;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Indicates an unexpected outcome of a (remote) service invocation.
  *
  */
 public class ServiceInvocationException extends RuntimeException {
+
+    private static final Logger logger = LoggerFactory.getLogger(ServerErrorException.class);
 
     private static final long serialVersionUID = 1L;
     private final int errorCode;
@@ -93,6 +98,7 @@ public class ServiceInvocationException extends RuntimeException {
         if (msg != null) {
             return msg;
         } else {
+            logger.info("Exception without message", new RuntimeException("Missing exception message"));
             return "Error Code: " + errorCode;
         }
     }
