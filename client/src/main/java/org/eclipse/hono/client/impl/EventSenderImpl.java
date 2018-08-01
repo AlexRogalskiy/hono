@@ -145,6 +145,7 @@ public final class EventSenderImpl extends AbstractSender {
      */
     @Override
     protected void addEndpointSpecificProperties(final Message msg, final String deviceId) {
+        System.out.println("SET DURABLE");
         msg.setDurable(true);
     }
 
