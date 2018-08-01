@@ -182,7 +182,7 @@ public abstract class AbstractVertxBasedHttpProtocolAdapter<T extends HttpProtoc
                 try {
                     onStartupSuccess();
                     startFuture.complete();
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     LOG.error("error in onStartupSuccess", e);
                     startFuture.fail(e);
                 }
@@ -406,7 +406,7 @@ public abstract class AbstractVertxBasedHttpProtocolAdapter<T extends HttpProtoc
 
         try {
             preShutdown();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOG.error("error in preShutdown", e);
         }
 
@@ -493,7 +493,8 @@ public abstract class AbstractVertxBasedHttpProtocolAdapter<T extends HttpProtoc
                 payload,
                 contentType,
                 getTelemetrySender(tenant),
-                TelemetryConstants.TELEMETRY_ENDPOINT);
+                TelemetryConstants.TELEMETRY_ENDPOINT,
+                false);
     }
 
     /**
@@ -542,11 +543,13 @@ public abstract class AbstractVertxBasedHttpProtocolAdapter<T extends HttpProtoc
                 payload,
                 contentType,
                 getEventSender(tenant),
-                EventConstants.EVENT_ENDPOINT);
+                EventConstants.EVENT_ENDPOINT,
+                true);
     }
 
     private void doUploadMessage(final RoutingContext ctx, final String tenant, final String deviceId,
-            final Buffer payload, final String contentType, final Future<MessageSender> senderTracker, final String endpointName) {
+            final Buffer payload, final String contentType, final Future<MessageSender> senderTracker,
+            final String endpointName, final boolean durable) {
 
         if (!isPayloadOfIndicatedType(payload, contentType)) {
             HttpUtils.badRequest(ctx, String.format("content type [%s] does not match payload", contentType));
@@ -582,7 +585,8 @@ public abstract class AbstractVertxBasedHttpProtocolAdapter<T extends HttpProtoc
                                 contentType,
                                 payload,
                                 tokenTracker.result(),
-                                HttpUtils.getTimeTilDisconnect(ctx));
+                                        HttpUtils.getTimeTilDisconnect(ctx),
+                                        durable);
                         customizeDownstreamMessage(downstreamMessage, ctx);
 
                         addConnectionCloseHandler(ctx, commandConsumerTracker.result(), tenant, deviceId);
@@ -879,7 +883,7 @@ public abstract class AbstractVertxBasedHttpProtocolAdapter<T extends HttpProtoc
             } else {
                 return Integer.parseInt(qosValue) != AT_LEAST_ONCE ? HEADER_QOS_INVALID : AT_LEAST_ONCE;
             }
-        } catch (NumberFormatException e) {
+        } catch (final NumberFormatException e) {
             return HEADER_QOS_INVALID;
         }
     }

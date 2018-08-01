@@ -576,7 +576,8 @@ public abstract class AbstractVertxBasedMqttProtocolAdapter<T extends ProtocolAd
                 Objects.requireNonNull(deviceId),
                 Objects.requireNonNull(payload),
                 getTelemetrySender(tenant),
-                TelemetryConstants.TELEMETRY_ENDPOINT);
+                TelemetryConstants.TELEMETRY_ENDPOINT,
+                false);
     }
 
     /**
@@ -605,11 +606,13 @@ public abstract class AbstractVertxBasedMqttProtocolAdapter<T extends ProtocolAd
                 Objects.requireNonNull(deviceId),
                 Objects.requireNonNull(payload),
                 getEventSender(tenant),
-                EventConstants.EVENT_ENDPOINT);
+                EventConstants.EVENT_ENDPOINT,
+                true);
     }
 
     private Future<Void> uploadMessage(final MqttContext ctx, final String tenant, final String deviceId,
-            final Buffer payload, final Future<MessageSender> senderTracker, final String endpointName) {
+            final Buffer payload, final Future<MessageSender> senderTracker, final String endpointName,
+            final boolean durable) {
 
         if (!isPayloadOfIndicatedType(payload, ctx.contentType())) {
             return Future.failedFuture(new ClientErrorException(HttpURLConnection.HTTP_BAD_REQUEST,
@@ -642,7 +645,8 @@ public abstract class AbstractVertxBasedMqttProtocolAdapter<T extends ProtocolAd
                             ctx.contentType(),
                             payload,
                             tokenTracker.result(),
-                            null);
+                            null,
+                            durable);
                     customizeDownstreamMessage(downstreamMessage, ctx);
 
                     if (ctx.message().qosLevel() == MqttQoS.AT_LEAST_ONCE) {

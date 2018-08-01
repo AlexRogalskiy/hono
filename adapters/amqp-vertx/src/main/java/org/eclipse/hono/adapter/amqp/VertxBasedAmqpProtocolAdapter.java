@@ -66,7 +66,7 @@ public final class VertxBasedAmqpProtocolAdapter extends AbstractProtocolAdapter
      */
     private ProtonServer insecureServer;
 
-    private AtomicBoolean secureListening = new AtomicBoolean(false);
+    private final AtomicBoolean secureListening = new AtomicBoolean(false);
 
     /**
      * This adapter's custom SASL authenticator factory for handling the authentication process for devices.
@@ -185,7 +185,7 @@ public final class VertxBasedAmqpProtocolAdapter extends AbstractProtocolAdapter
     }
 
     private ProtonServer createServer(final ProtonServer server, final ProtonServerOptions options) {
-        final ProtonServer createdServer = (server != null) ? server : ProtonServer.create(this.vertx, options);
+        final ProtonServer createdServer = server != null ? server : ProtonServer.create(this.vertx, options);
         if (getConfig().isAuthenticationRequired()) {
             createdServer.saslAuthenticatorFactory(authenticatorFactory);
         } else {
@@ -345,10 +345,11 @@ public final class VertxBasedAmqpProtocolAdapter extends AbstractProtocolAdapter
                 LOG.trace("Received request to upload telemetry data to endpoint [with name: {}]",
                         context.getEndpoint());
                 return doUploadMessage(context, getTelemetrySender(context.getTenantId()),
-                        TelemetryConstants.TELEMETRY_ENDPOINT);
+                        TelemetryConstants.TELEMETRY_ENDPOINT, false);
             case EVENT:
                 LOG.trace("Received request to upload events to endpoint [with name: {}]", context.getEndpoint());
-                return doUploadMessage(context, getEventSender(context.getTenantId()), EventConstants.EVENT_ENDPOINT);
+                return doUploadMessage(context, getEventSender(context.getTenantId()), EventConstants.EVENT_ENDPOINT,
+                        true);
             default:
                 return Future
                         .failedFuture(new ClientErrorException(HttpURLConnection.HTTP_BAD_REQUEST, "unknown endpoint"));
@@ -364,9 +365,9 @@ public final class VertxBasedAmqpProtocolAdapter extends AbstractProtocolAdapter
     }
 
     private Future<Void> doUploadMessage(final AmqpContext context, final Future<MessageSender> senderFuture,
-            final String endpointName) {
+            final String endpointName, final boolean durable) {
 
-        final String deviceId = (context.isDeviceAuthenticated())
+        final String deviceId = context.isDeviceAuthenticated()
                 ? context.getAuthenticatedDevice().getDeviceId() : context.getDeviceId();
 
         final Future<JsonObject> tokenFuture = getRegistrationAssertion(context.getTenantId(), deviceId,
@@ -382,7 +383,7 @@ public final class VertxBasedAmqpProtocolAdapter extends AbstractProtocolAdapter
                 final Message downstreamMessage = newMessage(resource,
                         sender.isRegistrationAssertionRequired(),
                         endpointName, context.getMessageContentType(), context.getMessagePayload(),
-                        tokenFuture.result(), null);
+                        tokenFuture.result(), null, durable);
 
                 if (context.isRemotelySettled()) {
                     // client uses AT_MOST_ONCE delivery semantics -> fire and forget

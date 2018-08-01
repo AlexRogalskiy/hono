@@ -809,7 +809,8 @@ public abstract class AbstractProtocolAdapterBase<T extends ProtocolAdapterPrope
             final String contentType,
             final Buffer payload,
             final JsonObject registrationInfo,
-            final Integer timeUntilDisconnect) {
+            final Integer timeUntilDisconnect,
+            final boolean durable) {
 
         Objects.requireNonNull(target);
         Objects.requireNonNull(registrationInfo);
@@ -835,6 +836,7 @@ public abstract class AbstractProtocolAdapterBase<T extends ProtocolAdapterPrope
         if (timeUntilDisconnect != null) {
             MessageHelper.addTimeUntilDisconnect(msg, timeUntilDisconnect);
         }
+        msg.setDurable(durable);
 
         MessageHelper.setCreationTime(msg);
 
