@@ -67,6 +67,8 @@ public class DefaultFailureHandler implements Handler<RoutingContext> {
                         final HttpStatusException e = (HttpStatusException) ctx.failure();
                         sendError(ctx.response(), e.getStatusCode(), e.getMessage());
                     } else {
+                        LOG.info("Unhandled internal exception[method: {}, URI: {}]", ctx.request().method(),
+                                ctx.request().absoluteURI(), ctx.failure());
                         sendError(ctx.response(), HttpURLConnection.HTTP_INTERNAL_ERROR, ctx.failure().getMessage());
                     }
                 } else if (ctx.statusCode() != -1) {
