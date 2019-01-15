@@ -29,6 +29,7 @@
     <module>auth</module>
     <module>device-registry</module>
     <module>messaging</module>
+    <module>es-device-registry</module>
   </modules>
 
   <name>Hono Services</name>
