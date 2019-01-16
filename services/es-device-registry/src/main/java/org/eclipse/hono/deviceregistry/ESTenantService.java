@@ -22,6 +22,8 @@ import org.eclipse.hono.service.tenant.CompleteBaseTenantService;
 import org.eclipse.hono.util.TenantResult;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.DocWriteRequest;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.RequestOptions;
@@ -74,6 +76,21 @@ public class ESTenantService extends CompleteBaseTenantService<ESTenantsConfigPr
 
     @Override
     public void get(final String tenantId, final Span span, final Handler<AsyncResult<TenantResult<JsonObject>>> resultHandler) {
+        final GetRequest request = new GetRequest("tenants", "doc", tenantId);
+        client.getAsync(request, RequestOptions.DEFAULT, new ActionListener<GetResponse>() {
+            @Override
+            public void onResponse(GetResponse documentFields) {
+                resultHandler.handle(Future.succeededFuture(
+                        TenantResult.from(HttpURLConnection.HTTP_OK,
+                                JsonObject.mapFrom(documentFields.getSourceAsString()))));
+            }
+
+            @Override
+            public void onFailure(final Exception e) {
+                resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
+            }
+        });
+
         super.get(tenantId, span, resultHandler);
     }
 
