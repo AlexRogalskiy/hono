@@ -34,6 +34,14 @@
             <artifactId>elasticsearch-rest-high-level-client</artifactId>
             <version>6.5.4</version>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.hono</groupId>
+            <artifactId>hono-service-base</artifactId>
+            <version>${project.version}</version>
+            <classifier>tests</classifier>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -100,6 +108,23 @@
                         </image>
                     </images>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>docker:start</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>start</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>docker:stop</id>
+                        <phase>post-integration-test</phase>
+                        <goals>
+                            <goal>stop</goal>
+                            <goal>remove</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

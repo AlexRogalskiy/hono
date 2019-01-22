@@ -12,48 +12,88 @@
  *******************************************************************************/
 package org.eclipse.hono.deviceregistry;
 
+import io.vertx.core.Context;
 import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.unit.TestContext;
+import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.eclipse.hono.client.StatusCodeMapper;
+import org.eclipse.hono.service.tenant.CompleteTenantService;
 import org.eclipse.hono.util.TenantObject;
 import org.eclipse.hono.util.TenantResult;
+import org.eclipse.hono.service.tenant.AbstractCompleteTenantServiceTest;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.Timeout;
+import org.junit.runner.RunWith;
 
 import java.net.HttpURLConnection;
 import java.util.concurrent.CountDownLatch;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 /**
  *
  */
-public class ESTenantServiceTest {
+@RunWith(VertxUnitRunner.class)
+public class ESTenantServiceTest extends AbstractCompleteTenantServiceTest {
 
-    private ESTenantServiceTest() {
+    /**
+     * Time out each test after five seconds.
+     */
+    @Rule
+    public final Timeout timeout = Timeout.seconds(5);
+
+    private Vertx vertx;
+    private EventBus eventBus;
+    private ESTenantsConfigProperties props;
+    private ESTenantService svc;
+
+    /**
+     * Sets up fixture.
+     */
+    @Before
+    public void setUp() {
+        final Context ctx = mock(Context.class);
+        eventBus = mock(EventBus.class);
+        vertx = mock(Vertx.class);
+        when(vertx.eventBus()).thenReturn(eventBus);
+
+        props = new ESTenantsConfigProperties();
+        svc = new ESTenantService();
+        svc.setConfig(props);
+        svc.init(vertx, ctx);
+
     }
 
-    public static void main(final String[] args) throws Exception {
-        final ESTenantService svc = new ESTenantService();
-        svc.setConfig(new ESTenantsConfigProperties());
-        final CountDownLatch finish = new CountDownLatch(1);
 
-        final Future<TenantResult<JsonObject>> result = Future.future();
+    @Override
+    public CompleteTenantService getCompleteTenantService() {
+        return svc;
+    }
+
+
+
+    /**
+     * Verifies that a tenant can be added
+     *
+     * @param ctx The vert.x test context.
+     */
+    @Test
+    public void testAddTenantSucceeds(final TestContext ctx) {
+
+        //final Future<TenantResult<JsonObject>> result = Future.future();
+
+        // WHEN trying to add a new tenant
         svc.add("test-tenant",
                 JsonObject.mapFrom(TenantObject.from("test-tenant", true)),
-                result.completer()
-        );
-
-
-        result.map(response -> {
-            System.out.println(response.getStatus());
-            finish.countDown();
-            if (response.getStatus() == HttpURLConnection.HTTP_CREATED) {
-                return null;
-            } else {
-                throw StatusCodeMapper.from(response);
-            }
-        });
-
-        finish.await();
-        svc.stop();
-
+                ctx.asyncAssertSuccess(s -> {
+            // THEN the request succeeds
+            ctx.assertEquals(HttpURLConnection.HTTP_CREATED, s.getStatus());
+        }));
     }
-
 }

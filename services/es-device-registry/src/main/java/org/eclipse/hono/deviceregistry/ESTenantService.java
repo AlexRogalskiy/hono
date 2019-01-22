@@ -87,7 +87,8 @@ public class ESTenantService extends CompleteBaseTenantService<ESTenantsConfigPr
             public void onFailure(final Exception e) {
                 resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_CONFLICT)));
             }
-        });    }
+        });
+    }
 
     @Override
     public void remove(final String tenantId, final Handler<AsyncResult<TenantResult<JsonObject>>> resultHandler) {
@@ -103,7 +104,8 @@ public class ESTenantService extends CompleteBaseTenantService<ESTenantsConfigPr
             public void onFailure(final Exception e) {
                 resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
             }
-        });    }
+        });
+    }
 
     @Override
     public void get(final String tenantId, final Span span, final Handler<AsyncResult<TenantResult<JsonObject>>> resultHandler) {
