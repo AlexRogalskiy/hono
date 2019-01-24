@@ -31,6 +31,7 @@ import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 
 import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.concurrent.CountDownLatch;
 
 import static org.mockito.Mockito.mock;
@@ -40,7 +41,7 @@ import static org.mockito.Mockito.when;
  *
  */
 @RunWith(VertxUnitRunner.class)
-public class ESTenantServiceTest extends AbstractCompleteTenantServiceTest {
+public class ESTenantServiceTest { //extends AbstractCompleteTenantServiceTest {
 
     /**
      * Time out each test after five seconds.
@@ -68,10 +69,24 @@ public class ESTenantServiceTest extends AbstractCompleteTenantServiceTest {
         svc.setConfig(props);
         svc.init(vertx, ctx);
 
+        try {
+            cleanDatabase();
+        }
+        catch( Exception e){
+            System.out.println("could not wipe ES database. Reason "+ e.getMessage());
+            }
+    }
+
+    private void cleanDatabase() throws Exception{
+        //curl -XDELETE localhost:9299/*
+        URL url = new URL("http://localhost:9299/*");
+        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+        con.setRequestMethod("DELETE");
+        con.getInputStream();
     }
 
 
-    @Override
+   // @Override
     public CompleteTenantService getCompleteTenantService() {
         return svc;
     }
@@ -84,16 +99,18 @@ public class ESTenantServiceTest extends AbstractCompleteTenantServiceTest {
      * @param ctx The vert.x test context.
      */
     @Test
-    public void testAddTenantSucceeds(final TestContext ctx) {
+    public void testAddTenantSucceeds(final TestContext ctx) throws Exception{
 
-        //final Future<TenantResult<JsonObject>> result = Future.future();
+        final CountDownLatch finish = new CountDownLatch(1);
 
         // WHEN trying to add a new tenant
         svc.add("test-tenant",
                 JsonObject.mapFrom(TenantObject.from("test-tenant", true)),
                 ctx.asyncAssertSuccess(s -> {
+                    finish.countDown();
             // THEN the request succeeds
             ctx.assertEquals(HttpURLConnection.HTTP_CREATED, s.getStatus());
         }));
+        finish.await();
     }
 }

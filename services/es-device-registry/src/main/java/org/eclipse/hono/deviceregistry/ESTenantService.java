@@ -59,15 +59,18 @@ public class ESTenantService extends CompleteBaseTenantService<ESTenantsConfigPr
     public void add(final String tenantId, final JsonObject tenantObj, final Handler<AsyncResult<TenantResult<JsonObject>>> resultHandler) {
         final IndexRequest request = new IndexRequest("tenants", "doc", tenantId)
                 .source(tenantObj, XContentType.JSON)
-                .opType(DocWriteRequest.OpType.CREATE);;
+                .opType(DocWriteRequest.OpType.CREATE);
+        System.out.println("create : "+tenantId);
         client.indexAsync(request, RequestOptions.DEFAULT, new ActionListener<IndexResponse>() {
             @Override
             public void onResponse(final IndexResponse indexResponse) {
+                System.out.println("created "+tenantId + indexResponse.status().getStatus());
                 resultHandler.handle(Future.succeededFuture(TenantResult.from(indexResponse.status().getStatus())));
             }
 
             @Override
             public void onFailure(final Exception e) {
+                System.out.println("ES failure ! ADD (l73)"+e.getMessage());
                 resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_CONFLICT)));
             }
         });
@@ -77,9 +80,11 @@ public class ESTenantService extends CompleteBaseTenantService<ESTenantsConfigPr
     public void update(final String tenantId, final JsonObject tenantObj, final Handler<AsyncResult<TenantResult<JsonObject>>> resultHandler) {
         final UpdateRequest request = new UpdateRequest("tenants", "doc", tenantId)
                 .doc(tenantObj, XContentType.JSON);
+        System.out.println("UPDATE : "+tenantId + "with"+tenantObj);
         client.updateAsync(request, RequestOptions.DEFAULT, new ActionListener<UpdateResponse>() {
             @Override
             public void onResponse(final UpdateResponse updateResponse) {
+                System.out.println("update ok");
                 resultHandler.handle(Future.succeededFuture(TenantResult.from(updateResponse.status().getStatus())));
             }
 
@@ -93,6 +98,7 @@ public class ESTenantService extends CompleteBaseTenantService<ESTenantsConfigPr
     @Override
     public void remove(final String tenantId, final Handler<AsyncResult<TenantResult<JsonObject>>> resultHandler) {
         final DeleteRequest request = new DeleteRequest("tenants", "doc", tenantId);
+        System.out.println("REMOVE "+tenantId);
 
         client.deleteAsync(request, RequestOptions.DEFAULT, new ActionListener<DeleteResponse>() {
             @Override
@@ -110,17 +116,23 @@ public class ESTenantService extends CompleteBaseTenantService<ESTenantsConfigPr
     @Override
     public void get(final String tenantId, final Span span, final Handler<AsyncResult<TenantResult<JsonObject>>> resultHandler) {
         final GetRequest request = new GetRequest("tenants", "doc", tenantId);
+        System.out.println("getting " + tenantId);
         client.getAsync(request, RequestOptions.DEFAULT, new ActionListener<GetResponse>() {
             @Override
             public void onResponse(GetResponse getResponse) {
-                resultHandler.handle(Future.succeededFuture(
-                        TenantResult.from(HttpURLConnection.HTTP_OK,
-                                JsonObject.mapFrom(getResponse.getSourceAsString()))));
+                if (getResponse.isExists()) {
+                    resultHandler.handle(Future.succeededFuture(
+                            TenantResult.from(HttpURLConnection.HTTP_OK,
+                                    JsonObject.mapFrom(getResponse.getSourceAsString()))));
+                } else {
+                    System.out.println("could not GET" + tenantId);
+                    resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
+                }
             }
 
             @Override
             public void onFailure(final Exception e) {
-                resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
+                resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_INTERNAL_ERROR)));
             }
         });
 
@@ -129,6 +141,7 @@ public class ESTenantService extends CompleteBaseTenantService<ESTenantsConfigPr
 
     @Override
     public void get(final X500Principal subjectDn, final Span span, final Handler<AsyncResult<TenantResult<JsonObject>>> resultHandler) {
+        System.out.println("getting by x509 " + subjectDn.getName());
 
         SearchRequest request = new SearchRequest("tenants");
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
@@ -138,14 +151,18 @@ public class ESTenantService extends CompleteBaseTenantService<ESTenantsConfigPr
         client.searchAsync(request, RequestOptions.DEFAULT, new ActionListener<SearchResponse>() {
             @Override
             public void onResponse(SearchResponse searchResponse) {
+                if (searchResponse.getHits().totalHits != 0) {
                 resultHandler.handle(Future.succeededFuture(
                         TenantResult.from(searchResponse.status().getStatus(),
                                 JsonObject.mapFrom(searchResponse.getHits().getAt(0).getSourceAsString()))));
+                 } else {
+                    resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
                 }
+        }
 
             @Override
             public void onFailure(Exception e) {
-                resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
+                resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_INTERNAL_ERROR)));
             }
         });
     }
