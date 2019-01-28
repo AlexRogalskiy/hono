@@ -16,6 +16,7 @@ import io.opentracing.Span;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.apache.http.HttpHost;
 import org.eclipse.hono.auth.HonoPasswordEncoder;
@@ -42,10 +43,14 @@ import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.aggregations.metrics.percentiles.hdr.InternalHDRPercentiles;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 
 import javax.security.auth.x500.X500Principal;
+import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.util.Iterator;
 
 /**
  *
@@ -70,13 +75,16 @@ public class ESCredentialService extends CompleteBaseCredentialsService<ESCreden
         client = new RestHighLevelClient(RestClient.builder(new HttpHost("localhost", 9299, "http")));
     }
 
-
     @Override
     public void add(String tenantId, JsonObject otherKeys, Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
+
+        String credentialUID = tenantId + otherKeys.getValue(CredentialsConstants.FIELD_TYPE) + otherKeys.getValue(CredentialsConstants.FIELD_AUTH_ID);
+
+        // then add the credential.
         otherKeys.put(TenantConstants.FIELD_PAYLOAD_TENANT_ID, tenantId);
-        final IndexRequest request = new IndexRequest(EC_CREDENTIALS_INDEX, "doc")
+        final IndexRequest request = new IndexRequest(EC_CREDENTIALS_INDEX, "doc", credentialUID)
                 .source(otherKeys, XContentType.JSON)
-                .opType(DocWriteRequest.OpType.CREATE);;
+                .opType(DocWriteRequest.OpType.CREATE);
         client.indexAsync(request, RequestOptions.DEFAULT, new ActionListener<IndexResponse>() {
             @Override
             public void onResponse(final IndexResponse indexResponse) {
@@ -87,12 +95,17 @@ public class ESCredentialService extends CompleteBaseCredentialsService<ESCreden
             public void onFailure(final Exception e) {
                 resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_CONFLICT)));
             }
-        });    }
+        });
+    }
+
 
     @Override
     public void update(String tenantId, JsonObject otherKeys, Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
+
+        String credentialUID = tenantId + otherKeys.getValue(CredentialsConstants.FIELD_TYPE) + otherKeys.getValue(CredentialsConstants.FIELD_AUTH_ID);
+
         otherKeys.put(TenantConstants.FIELD_PAYLOAD_TENANT_ID, tenantId);
-        final UpdateRequest request = new UpdateRequest(EC_CREDENTIALS_INDEX, "doc", tenantId)
+        final UpdateRequest request = new UpdateRequest(EC_CREDENTIALS_INDEX, "doc", credentialUID)
                 .doc(otherKeys, XContentType.JSON);
         client.updateAsync(request, RequestOptions.DEFAULT, new ActionListener<UpdateResponse>() {
             @Override
@@ -109,7 +122,10 @@ public class ESCredentialService extends CompleteBaseCredentialsService<ESCreden
 
     @Override
     public void remove(String tenantId, String type, String authId, Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
-        final DeleteRequest request = new DeleteRequest(EC_CREDENTIALS_INDEX, "doc", tenantId);
+
+        String credentialUID = tenantId + type + authId;
+
+        final DeleteRequest request = new DeleteRequest(EC_CREDENTIALS_INDEX, "doc", credentialUID);
 
         client.deleteAsync(request, RequestOptions.DEFAULT, new ActionListener<DeleteResponse>() {
             @Override
@@ -123,10 +139,14 @@ public class ESCredentialService extends CompleteBaseCredentialsService<ESCreden
             }
         });
     }
+    }
 
     @Override
     public void get(String tenantId, String type, String authId, Span span, Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
-        final GetRequest request = new GetRequest(EC_CREDENTIALS_INDEX, "doc", tenantId);
+
+        String credentialUID = tenantId + type + authId;
+
+        final GetRequest request = new GetRequest(EC_CREDENTIALS_INDEX, "doc", credentialUID);
         client.getAsync(request, RequestOptions.DEFAULT, new ActionListener<GetResponse>() {
             @Override
             public void onResponse(GetResponse getResponse) {
@@ -150,13 +170,25 @@ public class ESCredentialService extends CompleteBaseCredentialsService<ESCreden
 
     @Override
     public void getAll(String tenantId, String deviceId, Span span, Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
-        final GetRequest request = new GetRequest(EC_CREDENTIALS_INDEX, "doc", tenantId);
-        client.getAsync(request, RequestOptions.DEFAULT, new ActionListener<GetResponse>() {
+
+        SearchRequest request = new SearchRequest(EC_CREDENTIALS_INDEX);
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
+                .query(QueryBuilders.boolQuery()
+                        .must(QueryBuilders.matchQuery(TenantConstants.FIELD_PAYLOAD_TENANT_ID, tenantId))
+                        .must(QueryBuilders.matchQuery(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, deviceId));
+        request.source(searchSourceBuilder);
+
+        client.searchAsync(request, RequestOptions.DEFAULT, new ActionListener<SearchResponse>() {
             @Override
-            public void onResponse(GetResponse getResponse) {
+            public void onResponse(SearchResponse searchResponse) {
+                JsonArray response = new JsonArray();
+                Iterator<SearchHit> iterator = searchResponse.getHits().iterator();
+                while( iterator.hasNext()) {
+                    response.add(new JsonObject(((SearchHit) iterator.next()).getSourceAsString()));
+                }
                 resultHandler.handle(Future.succeededFuture(
                         CredentialsResult.from(HttpURLConnection.HTTP_OK,
-                                JsonObject.mapFrom(getResponse.getSourceAsString()))));
+                                JsonObject.mapFrom(response))));
             }
 
             @Override
@@ -170,5 +202,26 @@ public class ESCredentialService extends CompleteBaseCredentialsService<ESCreden
     @Override
     public void stop() throws Exception {
         client.close();
+    }
+
+
+    private SearchHit searchCredential(String tenantId, String authId, String type){
+        SearchRequest request = new SearchRequest(EC_CREDENTIALS_INDEX);
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
+                .query(QueryBuilders.boolQuery()
+                        .must(QueryBuilders.matchQuery(TenantConstants.FIELD_PAYLOAD_TENANT_ID, tenantId))
+                        .must(QueryBuilders.matchQuery(CredentialsConstants.FIELD_AUTH_ID, authId))
+                        .must(QueryBuilders.matchQuery(CredentialsConstants.FIELD_TYPE, type));
+        request.source(searchSourceBuilder);
+
+        try {
+            SearchResponse searchResponse = client.search(request, RequestOptions.DEFAULT);
+
+            if (searchResponse.getHits().totalHits == 1) {
+                return searchResponse.getHits().getAt(0);
+            } else return null;
+        }catch (IOException e) {
+            return null;
+        }
     }
 }
