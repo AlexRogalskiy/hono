@@ -85,7 +85,7 @@ public class ESTenantService extends CompleteBaseTenantService<ESTenantsConfigPr
             @Override
             public void onResponse(final UpdateResponse updateResponse) {
                 System.out.println("update ok");
-                resultHandler.handle(Future.succeededFuture(TenantResult.from(updateResponse.status().getStatus())));
+                resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
             }
 
             @Override
@@ -132,11 +132,10 @@ public class ESTenantService extends CompleteBaseTenantService<ESTenantsConfigPr
 
             @Override
             public void onFailure(final Exception e) {
+                e.printStackTrace();
                 resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_INTERNAL_ERROR)));
             }
         });
-
-        super.get(tenantId, span, resultHandler);
     }
 
     @Override

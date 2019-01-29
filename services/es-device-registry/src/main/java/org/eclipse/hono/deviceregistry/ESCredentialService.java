@@ -139,7 +139,7 @@ public class ESCredentialService extends CompleteBaseCredentialsService<ESCreden
             }
         });
     }
-    }
+
 
     @Override
     public void get(String tenantId, String type, String authId, Span span, Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
@@ -175,7 +175,7 @@ public class ESCredentialService extends CompleteBaseCredentialsService<ESCreden
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
                 .query(QueryBuilders.boolQuery()
                         .must(QueryBuilders.matchQuery(TenantConstants.FIELD_PAYLOAD_TENANT_ID, tenantId))
-                        .must(QueryBuilders.matchQuery(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, deviceId));
+                        .must(QueryBuilders.matchQuery(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, deviceId)));
         request.source(searchSourceBuilder);
 
         client.searchAsync(request, RequestOptions.DEFAULT, new ActionListener<SearchResponse>() {
@@ -211,7 +211,7 @@ public class ESCredentialService extends CompleteBaseCredentialsService<ESCreden
                 .query(QueryBuilders.boolQuery()
                         .must(QueryBuilders.matchQuery(TenantConstants.FIELD_PAYLOAD_TENANT_ID, tenantId))
                         .must(QueryBuilders.matchQuery(CredentialsConstants.FIELD_AUTH_ID, authId))
-                        .must(QueryBuilders.matchQuery(CredentialsConstants.FIELD_TYPE, type));
+                        .must(QueryBuilders.matchQuery(CredentialsConstants.FIELD_TYPE, type)));
         request.source(searchSourceBuilder);
 
         try {
