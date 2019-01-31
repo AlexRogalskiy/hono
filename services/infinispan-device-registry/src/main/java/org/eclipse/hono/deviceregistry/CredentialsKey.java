@@ -16,12 +16,22 @@ import java.util.Objects;
 
 public class CredentialsKey {
 
+    String tenantId;
     String authId;
     String type;
 
-    public CredentialsKey(String authId, String type) {
+    public CredentialsKey(String tenantId, String authId, String type) {
+        this.tenantId = tenantId;
         this.authId = authId;
         this.type = type;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 
     public String getAuthId() {
@@ -45,12 +55,13 @@ public class CredentialsKey {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         CredentialsKey that = (CredentialsKey) o;
-        return Objects.equals(authId, that.authId) &&
+        return Objects.equals(tenantId, that.tenantId) &&
+                Objects.equals(authId, that.authId) &&
                 Objects.equals(type, that.type);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(authId, type);
+        return Objects.hash(tenantId, authId, type);
     }
 }

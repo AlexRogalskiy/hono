@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class CacheCredentialService extends CompleteBaseCredentialsService<CacheCredentialConfigProperties> {
 
-    EmbeddedCacheManager manager;
+    Cache<CredentialsKey, CredentialsObject> credentialsCache;
 
     /**
      * Creates a new service instance for a password encoder.
@@ -43,10 +43,9 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
      * @param pwdEncoder The encoder to use for hashing clear text passwords.
      * @throws NullPointerException if encoder is {@code null}.
      */
-    protected CacheCredentialService(HonoPasswordEncoder pwdEncoder) {
+    protected CacheCredentialService(Cache<CredentialsKey, CredentialsObject> credentialsCache, HonoPasswordEncoder pwdEncoder) {
         super(pwdEncoder);
-        manager = new DefaultCacheManager();
-        manager.createCache("tenant", new ConfigurationBuilder().build());
+        this.credentialsCache = credentialsCache;
     }
 
     @Override
@@ -56,14 +55,13 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
 
     @Override
     public void add(String tenantId, JsonObject credentialsJson, Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
-        Cache<CredentialsKey, CredentialsObject> tenantCache = manager.getCache(tenantId,false);
 
         final CredentialsObject credentials = Optional.ofNullable(credentialsJson)
                 .map(json -> json.mapTo(CredentialsObject.class)).orElse(null);
 
-        CredentialsKey key = new CredentialsKey(credentials.getAuthId(), credentials.getType());
+        CredentialsKey key = new CredentialsKey(tenantId, credentials.getAuthId(), credentials.getType());
 
-        tenantCache.putAsync(key, credentials).thenAccept(result -> {
+        credentialsCache.putAsync(key, credentials).thenAccept(result -> {
                     resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_CREATED)));
                 }
         );
@@ -99,10 +97,9 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
         Objects.requireNonNull(authId);
         Objects.requireNonNull(resultHandler);
 
-        Cache<CredentialsKey, CredentialsObject> tenantCache = manager.getCache(tenantId, false);
-        CredentialsKey key = new CredentialsKey(authId, type);
+        CredentialsKey key = new CredentialsKey(tenantId, authId, type);
 
-        tenantCache.getAsync(key).thenAccept(credentials -> {
+        credentialsCache.getAsync(key).thenAccept(credentials -> {
             if (credentials == null) {
                 resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
             } else {
