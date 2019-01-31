@@ -28,7 +28,12 @@ import org.infinispan.configuration.cache.ConfigurationBuilder;
 import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
 
+import org.infinispan.query.Search;
+import org.infinispan.query.dsl.Query;
+import org.infinispan.query.dsl.QueryFactory;
+
 import java.net.HttpURLConnection;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -61,11 +66,17 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
 
         CredentialsKey key = new CredentialsKey(tenantId, credentials.getAuthId(), credentials.getType());
 
-        credentialsCache.putAsync(key, credentials).thenAccept(result -> {
+        //test if it exists
+        credentialsCache.getAsync(key).thenAccept( result -> {
+            if ( result == null){
+                credentialsCache.putIfAbsentAsync(key, credentials).thenAccept(r2 -> {
                     resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_CREATED)));
-                }
-        );
-    }
+                });
+            } else {
+                resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_CONFLICT)));
+            }
+        });
+            }
 
     /**
      * {@inheritDoc}
@@ -113,21 +124,48 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
 
     @Override
     public void update(String tenantId, JsonObject otherKeys, Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
-        super.update(tenantId, otherKeys, resultHandler);
+
+        final CredentialsObject credentials = Optional.ofNullable(otherKeys)
+                .map(json -> json.mapTo(CredentialsObject.class)).orElse(null);
+
+        CredentialsKey key = new CredentialsKey(tenantId, credentials.getAuthId(), credentials.getType());
+
+        credentialsCache.replaceAsync(key, credentials).thenAccept(result -> {
+                    resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
+                }
+        );
     }
 
     @Override
     public void remove(String tenantId, String type, String authId, Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
-        super.remove(tenantId, type, authId, resultHandler);
+
+        CredentialsKey key = new CredentialsKey(tenantId, authId, type);
+        credentialsCache.removeAsync(key).thenAccept(result -> {
+                    resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
+                }
+        );
     }
 
     @Override
     public void removeAll(String tenantId, String deviceId, Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
-        super.removeAll(tenantId, deviceId, resultHandler);
+
+        // Obtain a query factory for the cache
+        QueryFactory queryFactory = Search.getQueryFactory(credentialsCache);
+        // Construct a query
+        Query query = queryFactory.from(CredentialsObject.class).having("deviceId").eq(deviceId).build();
+        //TODO : how do we search into the key ?
+        // TODO : be async as well
+               // and(queryFactory.from(CredentialsKey.class).having("tenantId").eq(tenantId)).build();
+
+        // Execute the query
+        List<CredentialsObject> matches = query.list();
+        // List the results
+        matches.forEach(credential -> System.out.printf("Match: %s", credential.getDeviceId()));
     }
 
     @Override
     public void getAll(String tenantId, String deviceId, Span span, Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
 
+        super.getAll(tenantId,deviceId,resultHandler);
     }
 }
