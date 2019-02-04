@@ -18,7 +18,6 @@ import org.eclipse.hono.service.credentials.AbstractCompleteCredentialsServiceTe
 import org.eclipse.hono.service.credentials.CompleteCredentialsService;
 import org.eclipse.hono.service.tenant.AbstractCompleteTenantServiceTest;
 import org.eclipse.hono.service.tenant.CompleteTenantService;
-import org.eclipse.hono.util.CredentialsObject;
 import org.infinispan.Cache;
 import org.infinispan.configuration.cache.ConfigurationBuilder;
 import org.infinispan.manager.DefaultCacheManager;
@@ -34,7 +33,7 @@ public class CacheCredentialsServiceTest extends AbstractCompleteCredentialsServ
     @Before
     public void setUp() {
         EmbeddedCacheManager manager = new DefaultCacheManager();
-        Cache<CredentialsKey, CredentialsObject> credentialsCache = manager.createCache("credentials", new ConfigurationBuilder().build());
+        Cache<CredentialsKey, RegistryCredentialObject> credentialsCache = manager.createCache("credentials", new ConfigurationBuilder().build());
         service = new CacheCredentialService(credentialsCache, new SpringBasedHonoPasswordEncoder());
     }
 

@@ -40,7 +40,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class CacheCredentialService extends CompleteBaseCredentialsService<CacheCredentialConfigProperties> {
 
-    Cache<CredentialsKey, CredentialsObject> credentialsCache;
+    Cache<CredentialsKey, RegistryCredentialObject> credentialsCache;
 
     /**
      * Creates a new service instance for a password encoder.
@@ -48,7 +48,7 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
      * @param pwdEncoder The encoder to use for hashing clear text passwords.
      * @throws NullPointerException if encoder is {@code null}.
      */
-    protected CacheCredentialService(Cache<CredentialsKey, CredentialsObject> credentialsCache, HonoPasswordEncoder pwdEncoder) {
+    protected CacheCredentialService(Cache<CredentialsKey, RegistryCredentialObject> credentialsCache, HonoPasswordEncoder pwdEncoder) {
         super(pwdEncoder);
         this.credentialsCache = credentialsCache;
     }
@@ -65,11 +65,12 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
                 .map(json -> json.mapTo(CredentialsObject.class)).orElse(null);
 
         CredentialsKey key = new CredentialsKey(tenantId, credentials.getAuthId(), credentials.getType());
+        RegistryCredentialObject registryCredential = new RegistryCredentialObject(credentials, tenantId);
 
         //test if it exists
         credentialsCache.getAsync(key).thenAccept( result -> {
             if ( result == null){
-                credentialsCache.putIfAbsentAsync(key, credentials).thenAccept(r2 -> {
+                credentialsCache.putIfAbsentAsync(key, registryCredential).thenAccept(r2 -> {
                     resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_CREATED)));
                 });
             } else {
@@ -116,7 +117,7 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
             } else {
                 //TODO handle client context
                 resultHandler.handle(Future.succeededFuture(
-                        CredentialsResult.from(HttpURLConnection.HTTP_OK, JsonObject.mapFrom(credentials), CacheDirective.noCacheDirective())));
+                        CredentialsResult.from(HttpURLConnection.HTTP_OK, JsonObject.mapFrom(credentials.getHonoCredential()), CacheDirective.noCacheDirective())));
             }
         });
 
@@ -129,8 +130,9 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
                 .map(json -> json.mapTo(CredentialsObject.class)).orElse(null);
 
         CredentialsKey key = new CredentialsKey(tenantId, credentials.getAuthId(), credentials.getType());
+        RegistryCredentialObject registryCredential = new RegistryCredentialObject(credentials, tenantId);
 
-        credentialsCache.replaceAsync(key, credentials).thenAccept(result -> {
+        credentialsCache.replaceAsync(key, registryCredential).thenAccept(result -> {
                     resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
                 }
         );
@@ -149,18 +151,23 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
     @Override
     public void removeAll(String tenantId, String deviceId, Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
 
+        System.out.println("removing by device "+deviceId);
         // Obtain a query factory for the cache
         QueryFactory queryFactory = Search.getQueryFactory(credentialsCache);
         // Construct a query
-        Query query = queryFactory.from(CredentialsObject.class).having("deviceId").eq(deviceId).build();
-        //TODO : how do we search into the key ?
-        // TODO : be async as well
-               // and(queryFactory.from(CredentialsKey.class).having("tenantId").eq(tenantId)).build();
+        // TODO : async request ?
+        Query query = queryFactory.from(RegistryCredentialObject.class).having("deviceId").eq(deviceId).
+                and(queryFactory.from(RegistryCredentialObject.class).having("tenantId").eq(tenantId)).build();
 
         // Execute the query
-        List<CredentialsObject> matches = query.list();
-        // List the results
-        matches.forEach(credential -> System.out.printf("Match: %s", credential.getDeviceId()));
+        List<RegistryCredentialObject> matches = query.list();
+
+        // TODO : compose multiples futures ?
+        matches.forEach(registryCredential -> {
+            CredentialsKey key = new CredentialsKey(tenantId, registryCredential.getHonoCredential().getAuthId(), registryCredential.getHonoCredential().getType());
+            credentialsCache.remove(key);
+            System.out.printf("Removed: %s", registryCredential.getDeviceId() +" "+registryCredential.getHonoCredential().getType());
+        });
     }
 
     @Override
