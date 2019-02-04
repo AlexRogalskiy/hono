@@ -13,9 +13,9 @@
 package org.eclipse.hono.deviceregistry;
 
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.eclipse.hono.auth.SpringBasedHonoPasswordEncoder;
-import org.eclipse.hono.service.credentials.AbstractCompleteCredentialsServiceTest;
-import org.eclipse.hono.service.credentials.CompleteCredentialsService;
+import org.eclipse.hono.service.tenant.AbstractCompleteTenantServiceTest;
+import org.eclipse.hono.service.tenant.CompleteTenantService;
+import org.eclipse.hono.util.TenantObject;
 import org.infinispan.Cache;
 import org.infinispan.configuration.cache.ConfigurationBuilder;
 import org.infinispan.manager.DefaultCacheManager;
@@ -24,21 +24,19 @@ import org.junit.Before;
 import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
-public class CacheCredentialsServiceTest extends AbstractCompleteCredentialsServiceTest {
+public class CacheTenantServiceTest extends AbstractCompleteTenantServiceTest {
 
-    CacheCredentialService service;
+    CacheTenantService service;
 
     @Before
     public void setUp() {
         EmbeddedCacheManager manager = new DefaultCacheManager();
-        Cache<CredentialsKey, RegistryCredentialObject> credentialsCache = manager.createCache("credentials", new ConfigurationBuilder().build());
-        service = new CacheCredentialService(credentialsCache, new SpringBasedHonoPasswordEncoder());
+        Cache<String, TenantObject> tenantsCache = manager.createCache("tenants", new ConfigurationBuilder().build());
+        service = new CacheTenantService(tenantsCache);
     }
-
 
     @Override
-    public CompleteCredentialsService getCompleteCredentialsService() {
+    public CompleteTenantService getCompleteTenantService() {
         return service;
     }
-
 }

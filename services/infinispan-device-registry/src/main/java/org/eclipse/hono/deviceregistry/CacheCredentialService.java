@@ -67,17 +67,14 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
         CredentialsKey key = new CredentialsKey(tenantId, credentials.getAuthId(), credentials.getType());
         RegistryCredentialObject registryCredential = new RegistryCredentialObject(credentials, tenantId);
 
-        //test if it exists
-        credentialsCache.getAsync(key).thenAccept( result -> {
+        credentialsCache.putIfAbsentAsync(key, registryCredential).thenAccept(result -> {
             if ( result == null){
-                credentialsCache.putIfAbsentAsync(key, registryCredential).thenAccept(r2 -> {
                     resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_CREATED)));
-                });
             } else {
                 resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_CONFLICT)));
             }
         });
-            }
+    }
 
     /**
      * {@inheritDoc}
