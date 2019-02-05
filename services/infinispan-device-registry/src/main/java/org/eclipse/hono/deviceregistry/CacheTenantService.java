@@ -48,32 +48,38 @@ public class CacheTenantService extends CompleteBaseTenantService<CacheTenantCon
     @Override
     public void add(String tenantId, JsonObject tenantObj, Handler<AsyncResult<TenantResult<JsonObject>>> resultHandler) {
 
-        // TODO : handle duplicate CA
-
         final TenantObject tenantDetails = Optional.ofNullable(tenantObj)
                 .map(json -> json.mapTo(TenantObject.class)).orElse(null);
 
-        tenantsCache.putIfAbsentAsync(tenantId, tenantDetails).thenAccept(result -> {
-            if ( result == null){
+        if (tenantDetails.getTrustedCaSubjectDn() != null){
+            TenantObject tenant = searchByCert(tenantDetails.getTrustedCaSubjectDn().getName());
+            if (tenant != null) resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_CONFLICT)));
+        } else {
+            tenantsCache.putIfAbsentAsync(tenantId, tenantDetails).thenAccept(result -> {
+                if (result == null) {
                     resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_CREATED)));
-            } else {
-                resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_CONFLICT)));
-            }
-        });
+                } else {
+                    resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_CONFLICT)));
+                }
+            });
+        }
     }
 
     @Override
     public void update(String tenantId, JsonObject tenantObj, Handler<AsyncResult<TenantResult<JsonObject>>> resultHandler) {
 
-        // TODO : handle duplicate CA
-
         final TenantObject tenantDetails = Optional.ofNullable(tenantObj)
                 .map(json -> json.mapTo(TenantObject.class)).orElse(null);
 
-        tenantsCache.replaceAsync(tenantId, tenantDetails).thenAccept(result -> {
-                    resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
-                }
-        );
+        if (tenantDetails.getTrustedCaSubjectDn() != null){
+             TenantObject tenant = searchByCert(tenantDetails.getTrustedCaSubjectDn().getName());
+             if (tenant != null) resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_CONFLICT)));
+        } else {
+            tenantsCache.replaceAsync(tenantId, tenantDetails).thenAccept(result -> {
+                        resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
+                    }
+            );
+        }
     }
 
     @Override
@@ -102,27 +108,35 @@ public class CacheTenantService extends CompleteBaseTenantService<CacheTenantCon
     }
 
     @Override
-    // TODO : async
     public void get(X500Principal subjectDn, Span span, Handler<AsyncResult<TenantResult<JsonObject>>> resultHandler) {
 
-        handleUnimplementedOperation(resultHandler);
-        /*
-        System.out.println("Getting tenant with X500 SubjectDn");
+        TenantObject searchResult = searchByCert(subjectDn.getName());
+
+        if (searchResult == null) {
+            resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
+        } else {
+            TenantResult.from(HttpURLConnection.HTTP_OK, JsonObject.mapFrom(searchResult));
+        }
+    }
+
+    // TODO : search by certificate async ?
+    private TenantObject searchByCert(String subjectDnName){
+
+        System.out.println("Getting tenant with X500 SubjectDn : "+subjectDnName);
 
         QueryFactory queryFactory = Search.getQueryFactory(tenantsCache);
-        Query query = queryFactory.from(TenantObject.class).having(TenantConstants.FIELD_PAYLOAD_SUBJECT_DN).eq(subjectDn.getName()).build();
+        Query query = queryFactory
+                .from(TenantObject.class)
+                .having()
+                .contains(TenantConstants.FIELD_PAYLOAD_SUBJECT_DN+":"+subjectDnName).build();
 
-        // Execute the query
-        List<RegistryCredentialObject> matches = query.list();
+        List<TenantObject> matches = query.list();
 
-        if (matches.size() != 1 ){
-            resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
+        // TODO make a difference between not found and conflict?
+        if (matches.size() != 1){
+            return null;
         }else {
-            matches.forEach(tenant -> {
-                resultHandler.handle(Future.succeededFuture(
-                        TenantResult.from(HttpURLConnection.HTTP_OK, JsonObject.mapFrom(tenant))));
-            });
+            return matches.get(0);
         }
-        */
     }
 }
