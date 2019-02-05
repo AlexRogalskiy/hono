@@ -19,9 +19,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import org.eclipse.hono.service.registration.CompleteBaseRegistrationService;
 import org.eclipse.hono.service.tenant.CompleteBaseTenantService;
-import org.eclipse.hono.util.RegistrationResult;
-import org.eclipse.hono.util.TenantObject;
-import org.eclipse.hono.util.TenantResult;
+import org.eclipse.hono.util.*;
 import org.infinispan.Cache;
 
 import javax.security.auth.x500.X500Principal;
@@ -91,15 +89,5 @@ public class CacheRegistrationService extends CompleteBaseRegistrationService<Ca
                         RegistrationResult.from(HttpURLConnection.HTTP_OK, result)));
             }
         });
-    }
-
-    @Override
-    public void assertRegistration(String tenantId, String deviceId, Span span, Handler<AsyncResult<RegistrationResult>> resultHandler) {
-        handleUnimplementedOperation(resultHandler);
-    }
-
-    @Override
-    public void assertRegistration(String tenantId, String deviceId, String gatewayId, Span span, Handler<AsyncResult<RegistrationResult>> resultHandler) {
-        handleUnimplementedOperation(resultHandler);
     }
 }

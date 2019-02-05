@@ -27,12 +27,10 @@ public class CacheRegistrationServiceTest extends AbstractCompleteRegistrationSe
         service = new CacheRegistrationService(registrationCache);
     }
 
-    @Test
-    public void setConfig() {
-    }
-
     @Override
     public CompleteRegistrationService getCompleteRegistrationService() {
         return service;
     }
+
+
 }
