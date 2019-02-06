@@ -12,20 +12,15 @@
  *******************************************************************************/
 package org.eclipse.hono.deviceregistry;
 
-import io.opentracing.Span;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import org.eclipse.hono.service.registration.CompleteBaseRegistrationService;
-import org.eclipse.hono.service.tenant.CompleteBaseTenantService;
-import org.eclipse.hono.util.*;
+import org.eclipse.hono.util.RegistrationResult;
 import org.infinispan.Cache;
 
-import javax.security.auth.x500.X500Principal;
 import java.net.HttpURLConnection;
-import java.util.Objects;
-import java.util.Optional;
 
 public class CacheRegistrationService extends CompleteBaseRegistrationService<CacheRegistrationConfigProperties> {
 

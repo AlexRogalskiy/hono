@@ -18,7 +18,6 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import org.eclipse.hono.service.tenant.CompleteBaseTenantService;
-import org.eclipse.hono.util.TenantConstants;
 import org.eclipse.hono.util.TenantObject;
 import org.eclipse.hono.util.TenantResult;
 import org.infinispan.Cache;
@@ -34,14 +33,14 @@ import java.util.Optional;
 
 public class CacheTenantService extends CompleteBaseTenantService<CacheTenantConfigProperties> {
 
-    Cache<String, TenantObject> tenantsCache;
+    Cache<String, RegistryTenantObject> tenantsCache;
 
     @Override
     public void setConfig(CacheTenantConfigProperties configuration) {
 
     }
 
-    protected CacheTenantService(Cache<String, TenantObject> cache) {
+    protected CacheTenantService(Cache<String, RegistryTenantObject> cache) {
         this.tenantsCache = cache;
     }
 
@@ -51,11 +50,12 @@ public class CacheTenantService extends CompleteBaseTenantService<CacheTenantCon
         final TenantObject tenantDetails = Optional.ofNullable(tenantObj)
                 .map(json -> json.mapTo(TenantObject.class)).orElse(null);
 
+        //verify if a duplicate cert exists
         if (tenantDetails.getTrustedCaSubjectDn() != null){
-            TenantObject tenant = searchByCert(tenantDetails.getTrustedCaSubjectDn().getName());
+            RegistryTenantObject tenant = searchByCert(tenantDetails.getTrustedCaSubjectDn().getName());
             if (tenant != null) resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_CONFLICT)));
         } else {
-            tenantsCache.putIfAbsentAsync(tenantId, tenantDetails).thenAccept(result -> {
+            tenantsCache.putIfAbsentAsync(tenantId, new RegistryTenantObject(tenantDetails)).thenAccept(result -> {
                 if (result == null) {
                     resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_CREATED)));
                 } else {
@@ -71,11 +71,12 @@ public class CacheTenantService extends CompleteBaseTenantService<CacheTenantCon
         final TenantObject tenantDetails = Optional.ofNullable(tenantObj)
                 .map(json -> json.mapTo(TenantObject.class)).orElse(null);
 
+        //verify if a duplicate cert exists
         if (tenantDetails.getTrustedCaSubjectDn() != null){
-             TenantObject tenant = searchByCert(tenantDetails.getTrustedCaSubjectDn().getName());
+            RegistryTenantObject tenant = searchByCert(tenantDetails.getTrustedCaSubjectDn().getName());
              if (tenant != null) resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_CONFLICT)));
         } else {
-            tenantsCache.replaceAsync(tenantId, tenantDetails).thenAccept(result -> {
+            tenantsCache.replaceAsync(tenantId, new RegistryTenantObject(tenantDetails)).thenAccept(result -> {
                         resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
                     }
             );
@@ -97,12 +98,12 @@ public class CacheTenantService extends CompleteBaseTenantService<CacheTenantCon
         Objects.requireNonNull(tenantId);
         Objects.requireNonNull(resultHandler);
 
-        tenantsCache.getAsync(tenantId).thenAccept(tenantDetails -> {
-            if (tenantDetails == null) {
+        tenantsCache.getAsync(tenantId).thenAccept(registryTenantObject -> {
+            if (registryTenantObject == null) {
                 resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
             } else {
                 resultHandler.handle(Future.succeededFuture(
-                        TenantResult.from(HttpURLConnection.HTTP_OK, JsonObject.mapFrom(tenantDetails))));
+                        TenantResult.from(HttpURLConnection.HTTP_OK, JsonObject.mapFrom(registryTenantObject.getTenantObject()))));
             }
         });
     }
@@ -110,27 +111,27 @@ public class CacheTenantService extends CompleteBaseTenantService<CacheTenantCon
     @Override
     public void get(X500Principal subjectDn, Span span, Handler<AsyncResult<TenantResult<JsonObject>>> resultHandler) {
 
-        TenantObject searchResult = searchByCert(subjectDn.getName());
+        RegistryTenantObject searchResult = searchByCert(subjectDn.getName());
 
         if (searchResult == null) {
             resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
         } else {
-            TenantResult.from(HttpURLConnection.HTTP_OK, JsonObject.mapFrom(searchResult));
+            TenantResult.from(HttpURLConnection.HTTP_OK, JsonObject.mapFrom(searchResult.getTenantObject()));
         }
     }
 
     // TODO : search by certificate async ?
-    private TenantObject searchByCert(String subjectDnName){
+    private RegistryTenantObject searchByCert(String subjectDnName){
 
         System.out.println("Getting tenant with X500 SubjectDn : "+subjectDnName);
 
         QueryFactory queryFactory = Search.getQueryFactory(tenantsCache);
         Query query = queryFactory
-                .from(TenantObject.class)
-                .having()
-                .contains(TenantConstants.FIELD_PAYLOAD_SUBJECT_DN+":"+subjectDnName).build();
+                .from(RegistryTenantObject.class)
+                .having("trustedCa")
+                .contains(subjectDnName).build();
 
-        List<TenantObject> matches = query.list();
+        List<RegistryTenantObject> matches = query.list();
 
         // TODO make a difference between not found and conflict?
         if (matches.size() != 1){
