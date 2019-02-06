@@ -12,31 +12,27 @@
  *******************************************************************************/
 package org.eclipse.hono.deviceregistry;
 
+import io.vertx.core.json.JsonObject;
 import org.eclipse.hono.util.CredentialsObject;
 
 public class RegistryCredentialObject {
 
-    private CredentialsObject honoCredential;
     private final String tenantId;
     private final String deviceId;
+    private final JsonObject originalJson;
 
-
-    public RegistryCredentialObject(CredentialsObject honoCredential, String tenantId){
-        this.honoCredential = honoCredential;
+    public RegistryCredentialObject(CredentialsObject honoCredential, String tenantId, JsonObject originalJson){
         this.tenantId = tenantId;
         this.deviceId = honoCredential.getDeviceId();
+        this.originalJson = originalJson;
+    }
+
+    public JsonObject getOriginalJson() {
+        return originalJson;
     }
 
     public String getTenantId() {
         return tenantId;
-    }
-
-    public CredentialsObject getHonoCredential() {
-        return honoCredential;
-    }
-
-    public void setHonoCredential(CredentialsObject honoCredential) {
-        this.honoCredential = honoCredential;
     }
 
     public String getDeviceId(){
