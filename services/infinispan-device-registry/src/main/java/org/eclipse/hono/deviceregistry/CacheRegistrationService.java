@@ -19,9 +19,16 @@ import io.vertx.core.json.JsonObject;
 import org.eclipse.hono.service.registration.CompleteBaseRegistrationService;
 import org.eclipse.hono.util.RegistrationResult;
 import org.infinispan.Cache;
+import org.infinispan.configuration.cache.ConfigurationBuilder;
+import org.infinispan.manager.EmbeddedCacheManager;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Repository;
 
 import java.net.HttpURLConnection;
 
+@Repository
+@ConditionalOnProperty(name = "hono.app.type", havingValue = "infinispan", matchIfMissing = true)
 public class CacheRegistrationService extends CompleteBaseRegistrationService<CacheRegistrationConfigProperties> {
 
     Cache<RegistrationKey, JsonObject> registrationCache;
@@ -30,9 +37,9 @@ public class CacheRegistrationService extends CompleteBaseRegistrationService<Ca
     public void setConfig(CacheRegistrationConfigProperties configuration) {
 
     }
-
-    protected CacheRegistrationService(Cache<RegistrationKey, JsonObject> cache) {
-        this.registrationCache = cache;
+    @Autowired
+    protected CacheRegistrationService(EmbeddedCacheManager cacheManager) {
+        this.registrationCache = cacheManager.createCache("registration", new ConfigurationBuilder().build());
     }
 
 

@@ -21,9 +21,14 @@ import org.eclipse.hono.service.tenant.CompleteBaseTenantService;
 import org.eclipse.hono.util.TenantObject;
 import org.eclipse.hono.util.TenantResult;
 import org.infinispan.Cache;
+import org.infinispan.configuration.cache.ConfigurationBuilder;
+import org.infinispan.manager.EmbeddedCacheManager;
 import org.infinispan.query.Search;
 import org.infinispan.query.dsl.Query;
 import org.infinispan.query.dsl.QueryFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Repository;
 
 import javax.security.auth.x500.X500Principal;
 import java.net.HttpURLConnection;
@@ -31,6 +36,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+@Repository
+@ConditionalOnProperty(name = "hono.app.type", havingValue = "infinispan", matchIfMissing = true)
 public class CacheTenantService extends CompleteBaseTenantService<CacheTenantConfigProperties> {
 
     Cache<String, RegistryTenantObject> tenantsCache;
@@ -40,8 +47,9 @@ public class CacheTenantService extends CompleteBaseTenantService<CacheTenantCon
 
     }
 
-    protected CacheTenantService(Cache<String, RegistryTenantObject> cache) {
-        this.tenantsCache = cache;
+    @Autowired
+    protected CacheTenantService(EmbeddedCacheManager cacheManager) {
+        this.tenantsCache = cacheManager.createCache("tenants", new ConfigurationBuilder().build());
     }
 
     @Override

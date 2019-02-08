@@ -31,8 +31,7 @@ public class CacheCredentialsServiceTest extends AbstractCompleteCredentialsServ
     @Before
     public void setUp() {
         EmbeddedCacheManager manager = new DefaultCacheManager();
-        Cache<CredentialsKey, RegistryCredentialObject> credentialsCache = manager.createCache("credentials", new ConfigurationBuilder().build());
-        service = new CacheCredentialService(credentialsCache, new SpringBasedHonoPasswordEncoder());
+        service = new CacheCredentialService(manager, new SpringBasedHonoPasswordEncoder());
     }
 
 

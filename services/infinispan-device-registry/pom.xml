@@ -10,7 +10,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>infinispan-device-registry</artifactId>
-
+    <name>Hono Device Registry built with Infinispan</name>
+    <description>A device registry for Hono using Infinispan as a storage backend.</description>
 
     <dependencies>
         <dependency>
@@ -36,6 +37,90 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.infinispan</groupId>
+            <artifactId>infinispan-spring-boot-starter-embedded</artifactId>
+            <version>2.1.3.Final</version>
+        </dependency>
     </dependencies>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+    <profile>
+        <id>build-docker-image</id>
+        <activation>
+            <property>
+                <name>docker.host</name>
+            </property>
+        </activation>
+        <build>
+            <plugins>
+                <plugin>
+                    <groupId>io.fabric8</groupId>
+                    <artifactId>docker-maven-plugin</artifactId>
+                    <configuration>
+                        <images>
+                            <image>
+                                <build>
+                                    <from>${java-base-image.name}</from>
+                                    <labels>
+                                        <implemented.api.1>Tenant</implemented.api.1>
+                                        <implemented.api.2>Device Registration</implemented.api.2>
+                                        <implemented.api.3>Credentials</implemented.api.3>
+                                    </labels>
+                                    <ports>
+                                        <port>5671</port>
+                                        <port>5672</port>
+                                        <port>8080</port>
+                                        <port>8443</port>
+                                        <port>${vertx.health.port}</port>
+                                    </ports>
+                                    <cmd>
+                                        <exec>
+                                            <arg>java</arg>
+                                            <arg>--illegal-access=permit</arg>
+                                            <arg>-Dvertx.cacheDirBase=/tmp</arg>
+                                            <arg>-Dloader.home=/opt/hono</arg>
+                                            <arg>-Dloader.path=extensions</arg>
+                                            <arg>-cp</arg>
+                                            <arg>/opt/hono/${project.artifactId}-${project.version}-${classifier.spring.boot.artifact}.jar</arg>
+                                            <arg>org.springframework.boot.loader.PropertiesLauncher</arg>
+                                        </exec>
+                                    </cmd>
+                                    <assembly>
+                                        <mode>dir</mode>
+                                        <basedir>/</basedir>
+                                        <inline>
+                                            <fileSets>
+                                                <fileSet>
+                                                    <directory>${project.build.directory}</directory>
+                                                    <outputDirectory>opt/hono</outputDirectory>
+                                                    <includes>
+                                                        <include>${project.artifactId}-${project.version}-${classifier.spring.boot.artifact}.jar</include>
+                                                    </includes>
+                                                </fileSet>
+                                            </fileSets>
+                                        </inline>
+                                    </assembly>
+                                </build>
+                            </image>
+                        </images>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </build>
+    </profile>
+    </profiles>
 </project>

@@ -21,8 +21,7 @@ public class CacheRegistrationServiceTest extends AbstractCompleteRegistrationSe
     public void setUp() throws Exception {
 
         EmbeddedCacheManager manager = new DefaultCacheManager();
-        Cache<RegistrationKey, JsonObject> registrationCache = manager.createCache("registration", new ConfigurationBuilder().build());
-        service = new CacheRegistrationService(registrationCache);
+        service = new CacheRegistrationService(manager);
     }
 
     @Override
