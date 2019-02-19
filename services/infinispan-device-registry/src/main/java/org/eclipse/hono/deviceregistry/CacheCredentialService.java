@@ -61,7 +61,6 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
 
     @Override
     public void setConfig(CacheCredentialConfigProperties configuration) {
-
     }
 
     @Override
@@ -109,7 +108,6 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
             final Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
 
         System.out.println("GET context : "+clientContext);
-
 
         Objects.requireNonNull(tenantId);
         Objects.requireNonNull(type);

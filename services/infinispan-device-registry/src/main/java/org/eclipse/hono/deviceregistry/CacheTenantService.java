@@ -128,7 +128,7 @@ public class CacheTenantService extends CompleteBaseTenantService<CacheTenantCon
         }
     }
 
-    // TODO : search by certificate async ?
+    // infinispan async querying coming soon™
     private RegistryTenantObject searchByCert(String subjectDnName){
 
         System.out.println("Getting tenant with X500 SubjectDn : "+subjectDnName);

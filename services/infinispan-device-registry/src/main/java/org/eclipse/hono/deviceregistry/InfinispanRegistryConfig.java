@@ -13,42 +13,14 @@
 
 package org.eclipse.hono.deviceregistry;
 
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.spring.autoconfigure.MeterRegistryCustomizer;
-import io.opentracing.Tracer;
-import io.opentracing.contrib.tracerresolver.TracerResolver;
-import io.opentracing.noop.NoopTracerFactory;
-import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
-import org.eclipse.hono.auth.HonoPasswordEncoder;
-import org.eclipse.hono.auth.SpringBasedHonoPasswordEncoder;
-import org.eclipse.hono.config.ApplicationConfigProperties;
-import org.eclipse.hono.config.ServiceConfigProperties;
-import org.eclipse.hono.config.VertxProperties;
-import org.eclipse.hono.service.HealthCheckServer;
-import org.eclipse.hono.service.VertxBasedHealthCheckServer;
-import org.eclipse.hono.service.credentials.CredentialsAmqpEndpoint;
-import org.eclipse.hono.service.credentials.CredentialsHttpEndpoint;
-import org.eclipse.hono.service.metric.MetricsTags;
-import org.eclipse.hono.service.registration.RegistrationAmqpEndpoint;
-import org.eclipse.hono.service.registration.RegistrationAssertionHelper;
-import org.eclipse.hono.service.registration.RegistrationAssertionHelperImpl;
-import org.eclipse.hono.service.registration.RegistrationHttpEndpoint;
-import org.eclipse.hono.service.tenant.TenantAmqpEndpoint;
-import org.eclipse.hono.service.tenant.TenantHttpEndpoint;
-import org.eclipse.hono.util.Constants;
-import org.infinispan.Cache;
-import org.infinispan.configuration.cache.ConfigurationBuilder;
 import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.config.ObjectFactoryCreatingFactoryBean;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Scope;
 
-import java.util.Optional;
+import java.io.IOException;
 
 /**
  * Spring Boot configuration for the Device Registry application.
@@ -57,4 +29,22 @@ import java.util.Optional;
 @Configuration
 public class InfinispanRegistryConfig extends ApplicationConfig {
 
+    @Value("${infinispan.config.file}")
+    private String infinispanConfigFile;
+
+    private EmbeddedCacheManager cacheManager;
+
+    @Bean
+    public EmbeddedCacheManager getCacheManager() {
+        return cacheManager;
+    }
+
+    @Annotation ???
+    public void setCacheManager(){
+        try{
+            this.cacheManager = new DefaultCacheManager(infinispanConfigFile);
+        } catch (IOException e){
+            this.cacheManager = new DefaultCacheManager();
+        }
+    }
 }

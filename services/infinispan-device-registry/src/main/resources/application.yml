@@ -34,13 +34,16 @@ hono:
     svc:
       filename: /etc/hono/credentials.json
       maxBcryptIterations: 10
-      saveToFile: false
+      useEmbeddedCache: true
   tenant:
     svc:
       filename: /etc/hono/tenants.json
       saveToFile: false
   metrics:
     legacy: false
+infinispan:
+  config:
+    file: /src/main/resources/cache-configuration.xml
 spring:
   jmx:
     enabled: false
