@@ -36,15 +36,11 @@ public class InfinispanRegistryConfig extends ApplicationConfig {
 
     @Bean
     public EmbeddedCacheManager getCacheManager() {
-        return cacheManager;
-    }
-
-    @Annotation ???
-    public void setCacheManager(){
         try{
             this.cacheManager = new DefaultCacheManager(infinispanConfigFile);
         } catch (IOException e){
             this.cacheManager = new DefaultCacheManager();
         }
+        return cacheManager;
     }
 }
