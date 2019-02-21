@@ -29,14 +29,12 @@ import java.util.concurrent.TimeUnit;
 import org.eclipse.hono.client.CredentialsClient;
 import org.eclipse.hono.client.HonoClient;
 import org.eclipse.hono.client.ServiceInvocationException;
+import org.eclipse.hono.tests.DeviceRegistryHttpClient;
 import org.eclipse.hono.tests.IntegrationTestSupport;
 import org.eclipse.hono.util.Constants;
 import org.eclipse.hono.util.CredentialsConstants;
 import org.eclipse.hono.util.CredentialsObject;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 
@@ -63,6 +61,9 @@ public class CredentialsAmqpIT {
 
     private static HonoClient client;
     private static CredentialsClient credentialsClient;
+    private static DeviceRegistryHttpClient registryHttpClient;
+
+    private  vbJsonObject testData;
 
     /**
      * Global timeout for all test cases.
@@ -72,7 +73,7 @@ public class CredentialsAmqpIT {
 
     /**
      * Starts the device registry and connects a client.
-     * 
+     *
      * @param ctx The vert.x test context.
      */
     @BeforeClass
@@ -86,11 +87,29 @@ public class CredentialsAmqpIT {
             .setHandler(ctx.asyncAssertSuccess(r -> {
                 credentialsClient = r;
             }));
+
+        registryHttpClient = new DeviceRegistryHttpClient(
+                vertx,
+                IntegrationTestSupport.HONO_DEVICEREGISTRY_HOST,
+                IntegrationTestSupport.HONO_DEVICEREGISTRY_HTTP_PORT);
+    }
+
+    @After
+    public void cleanupDeviceRegistry(){
+
+        if (testData != null) {
+            registryHttpClient.removeCredentials(
+                    Constants.DEFAULT_TENANT,
+                    testData.getString(CredentialsConstants.FIELD_AUTH_ID),
+                    testData.getString(CredentialsConstants.FIELD_TYPE)
+            );
+            testData = null;
+        }
     }
 
     /**
      * Shuts down the device registry and closes the client.
-     * 
+     *
      * @param ctx The vert.x test context.
      */
     @AfterClass
@@ -102,7 +121,7 @@ public class CredentialsAmqpIT {
 
     /**
      * Verify that a not existing authId is responded with HTTP_NOT_FOUND.
-     * 
+     *
      * @param ctx The vert.x test context.
      */
     @Test
@@ -119,11 +138,35 @@ public class CredentialsAmqpIT {
 
     /**
      * Verifies that the service returns credentials for a given type and authentication ID.
-     * 
+     *
      * @param ctx The vert.x test context.
      */
     @Test
     public void testGetCredentialsReturnsCredentialsTypeAndAuthId(final TestContext ctx) {
+
+        testData = new JsonObject()
+                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, DEFAULT_DEVICE_ID)
+                .put(CredentialsConstants.FIELD_TYPE, CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD)
+                .put(CredentialsConstants.FIELD_AUTH_ID, CREDENTIALS_AUTHID1)
+                .put(CredentialsConstants.FIELD_SECRETS, new JsonArray()
+//                        .add( new JsonObject()
+//                                .put( CredentialsConstants.FIELD_SECRETS_NOT_BEFORE, "2017-05-01T14:00:00+01:00")
+//                                .put(CredentialsConstants.FIELD_SECRETS_NOT_BEFORE, "2037-06-01T14:00:00+01:00")
+//                                .put(CredentialsConstants.FIELD_SECRETS_HASH_FUNCTION, CredentialsConstants.HASH_FUNCTION_SHA512)
+//                                .put(CredentialsConstants.FIELD_SECRETS_SALT, "aG9ubw==")
+//                                .put("comment", "pwd: hono-secret")
+//                                .put(CredentialsConstants.FIELD_SECRETS_PWD_HASH, "C9/T62m1tT4ZxxqyIiyN9fvoEqmL0qnM4/+M+GHHDzr0QzzkAUdGYyJBfxRSe4upDzb6TSC4k5cpZG17p4QCvA=="))
+//                        .add(new JsonObject()
+//                                .put( CredentialsConstants.FIELD_SECRETS_NOT_BEFORE, "2017-05-15T14:00:00+01:00")
+//                                .put(CredentialsConstants.FIELD_SECRETS_NOT_BEFORE, "2037-05-01T14:00:00+01:00")
+//                                .put(CredentialsConstants.FIELD_SECRETS_HASH_FUNCTION, CredentialsConstants.HASH_FUNCTION_SHA512)
+//                                .put(CredentialsConstants.FIELD_SECRETS_SALT, "aG9ubzI=")
+//                                .put("comment", "pwd: hono-secret")
+//                                .put(CredentialsConstants.FIELD_SECRETS_PWD_HASH, "QDhkSQcm0HNBybnuc5irvPIgNUJn0iVoQnFSoltLOsDlfxhcQWa99l8Dhh67jSKBr7fXeSvFZ1mEojReAXz18A=="))
+                );
+
+        registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData);
+
 
         credentialsClient
             .get(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, CREDENTIALS_AUTHID1)
@@ -195,7 +238,7 @@ public class CredentialsAmqpIT {
     /**
      * Verify that setting authId and type to existing credentials is responded with HTTP_OK.
      * Check that the payload contains the default deviceId and is enabled.
-     * 
+     *
      * @param ctx The vert.x test context.
      */
     @Test
@@ -211,7 +254,7 @@ public class CredentialsAmqpIT {
     /**
      * Verify that setting authId and type to existing credentials is responded with HTTP_OK.
      * Check that the payload contains multiple secrets (more than one).
-     * 
+     *
      * @param ctx The vert.x test context.
      */
     @Test
@@ -227,7 +270,7 @@ public class CredentialsAmqpIT {
     /**
      * Verify that setting authId and type to existing credentials is responded with HTTP_OK.
      * Check that the payload contains the expected hash-function, salt and encrypted password.
-     * 
+     *
      * @param ctx The vert.x test context.
      */
     @Test
@@ -243,7 +286,7 @@ public class CredentialsAmqpIT {
     /**
      * Verify that setting authId and type to existing credentials is responded with HTTP_OK.
      * Check that the payload contains NOT_BEFORE and NOT_AFTER entries which denote a currently active time interval.
-     * 
+     *
      * @param ctx The vert.x test context.
      */
     @Test
@@ -259,7 +302,7 @@ public class CredentialsAmqpIT {
     /**
      * Verify that setting authId and type PreSharedKey to existing credentials is responded with HTTP_OK.
      * Check that the payload contains NOT_BEFORE and NOT_AFTER entries which denote a currently active time interval.
-     * 
+     *
      * @param ctx The vert.x test context.
      */
     @Test
