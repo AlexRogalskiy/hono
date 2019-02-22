@@ -25,7 +25,7 @@ hono:
       KeyStorePassword: deviceregistrykeys
     rest:
       insecurePortEnabled: true
-      insecurePort: 18080
+      insecurePort: 28080
       insecurePortBindAddress: 0.0.0.0
     svc:
       signing:

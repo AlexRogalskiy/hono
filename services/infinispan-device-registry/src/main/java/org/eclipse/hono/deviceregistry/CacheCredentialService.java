@@ -66,7 +66,6 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
     @Override
     public void add(String tenantId, JsonObject credentialsJson, Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
 
-        System.out.println("ADD : "+credentialsJson);
         final CredentialsObject credentials = Optional.ofNullable(credentialsJson)
                 .map(json -> json.mapTo(CredentialsObject.class)).orElse(null);
 
@@ -107,16 +106,12 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
             final Span span,
             final Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
 
-        System.out.println("GET context : "+clientContext);
-
         Objects.requireNonNull(tenantId);
         Objects.requireNonNull(type);
         Objects.requireNonNull(authId);
         Objects.requireNonNull(resultHandler);
 
         CredentialsKey key = new CredentialsKey(tenantId, authId, type);
-        System.out.println("searching with "+tenantId+ authId+ type);
-
        credentialsCache.getAsync(key).thenAccept(credential -> {
             if (credential == null) {
                resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
@@ -162,8 +157,6 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
     @Override
     public void removeAll(String tenantId, String deviceId, Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
 
-        System.out.println("removing by device "+deviceId);
-
         List<RegistryCredentialObject>  matches = queryAllCredentialsForDevice(tenantId, deviceId);
         matches.forEach(registryCredential -> {
             CredentialsKey key = new CredentialsKey(
@@ -171,7 +164,6 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
                     registryCredential.getOriginalJson().getString(CredentialsConstants.FIELD_AUTH_ID),
                     registryCredential.getOriginalJson().getString(CredentialsConstants.FIELD_TYPE));
             credentialsCache.remove(key);
-            System.out.printf("Removed: %s", registryCredential.getDeviceId() +" "+registryCredential.getOriginalJson().encode());
         });
         resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
     }
