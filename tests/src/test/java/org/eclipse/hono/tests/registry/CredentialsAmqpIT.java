@@ -34,7 +34,11 @@ import org.eclipse.hono.tests.IntegrationTestSupport;
 import org.eclipse.hono.util.Constants;
 import org.eclipse.hono.util.CredentialsConstants;
 import org.eclipse.hono.util.CredentialsObject;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Test;
+import org.junit.Rule;
+import org.junit.BeforeClass;
+import org.junit.AfterClass;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 
@@ -63,7 +67,7 @@ public class CredentialsAmqpIT {
     private static CredentialsClient credentialsClient;
     private static DeviceRegistryHttpClient registryHttpClient;
 
-    private  vbJsonObject testData;
+    private static JsonObject testData;
 
     /**
      * Global timeout for all test cases.
@@ -94,9 +98,12 @@ public class CredentialsAmqpIT {
                 IntegrationTestSupport.HONO_DEVICEREGISTRY_HTTP_PORT);
     }
 
+    /**
+     * Remove the fixture from the device registry if the test had set up any.
+     *
+     */
     @After
     public void cleanupDeviceRegistry(){
-
         if (testData != null) {
             registryHttpClient.removeCredentials(
                     Constants.DEFAULT_TENANT,
@@ -144,55 +151,70 @@ public class CredentialsAmqpIT {
     @Test
     public void testGetCredentialsReturnsCredentialsTypeAndAuthId(final TestContext ctx) {
 
+        // Prepare the credential to insert
         testData = new JsonObject()
                 .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, DEFAULT_DEVICE_ID)
                 .put(CredentialsConstants.FIELD_TYPE, CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD)
                 .put(CredentialsConstants.FIELD_AUTH_ID, CREDENTIALS_AUTHID1)
-                .put(CredentialsConstants.FIELD_SECRETS, new JsonArray()
-//                        .add( new JsonObject()
-//                                .put( CredentialsConstants.FIELD_SECRETS_NOT_BEFORE, "2017-05-01T14:00:00+01:00")
-//                                .put(CredentialsConstants.FIELD_SECRETS_NOT_BEFORE, "2037-06-01T14:00:00+01:00")
-//                                .put(CredentialsConstants.FIELD_SECRETS_HASH_FUNCTION, CredentialsConstants.HASH_FUNCTION_SHA512)
-//                                .put(CredentialsConstants.FIELD_SECRETS_SALT, "aG9ubw==")
-//                                .put("comment", "pwd: hono-secret")
-//                                .put(CredentialsConstants.FIELD_SECRETS_PWD_HASH, "C9/T62m1tT4ZxxqyIiyN9fvoEqmL0qnM4/+M+GHHDzr0QzzkAUdGYyJBfxRSe4upDzb6TSC4k5cpZG17p4QCvA=="))
-//                        .add(new JsonObject()
-//                                .put( CredentialsConstants.FIELD_SECRETS_NOT_BEFORE, "2017-05-15T14:00:00+01:00")
-//                                .put(CredentialsConstants.FIELD_SECRETS_NOT_BEFORE, "2037-05-01T14:00:00+01:00")
-//                                .put(CredentialsConstants.FIELD_SECRETS_HASH_FUNCTION, CredentialsConstants.HASH_FUNCTION_SHA512)
-//                                .put(CredentialsConstants.FIELD_SECRETS_SALT, "aG9ubzI=")
-//                                .put("comment", "pwd: hono-secret")
-//                                .put(CredentialsConstants.FIELD_SECRETS_PWD_HASH, "QDhkSQcm0HNBybnuc5irvPIgNUJn0iVoQnFSoltLOsDlfxhcQWa99l8Dhh67jSKBr7fXeSvFZ1mEojReAXz18A=="))
-                );
+                .put(CredentialsConstants.FIELD_SECRETS, getAuthId1Secrets());
 
-        registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData);
+        // Insert it into the device Registry
+        registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
 
-
-        credentialsClient
-            .get(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, CREDENTIALS_AUTHID1)
-            .setHandler(ctx.asyncAssertSuccess(result -> {
-                ctx.assertEquals(CREDENTIALS_AUTHID1, result.getAuthId());
-                ctx.assertEquals(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, result.getType());
-            }));
+            // it's successfully inserted, run the test.
+            if (r.succeeded()) {
+                credentialsClient
+                        .get(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, CREDENTIALS_AUTHID1)
+                        .setHandler(ctx.asyncAssertSuccess(result -> {
+                            ctx.assertEquals(CREDENTIALS_AUTHID1, result.getAuthId());
+                            ctx.assertEquals(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, result.getType());
+                        }));
+            }else {
+                ctx.fail(r.cause());
+            }
+        });
     }
 
-    /**
-     * Verifies that the service returns credentials for a given type, authentication ID and matching client context.
-     *
-     * @param ctx The vert.x test context.
-     */
+/**
+ * Verifies that the service returns credentials for a given type, authentication ID and matching client context.
+ *
+ * @param ctx The vert.x test context.
+ */
     @Test
     public void testGetCredentialsExistingClientContext(final TestContext ctx) {
 
-        final JsonObject clientContext = new JsonObject()
-                .put("client-id", "gateway-one");
+        // Prepare the credential to insert
+        testData = new JsonObject()
+                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, "gw-1")
+                .put(CredentialsConstants.FIELD_TYPE, CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD)
+                .put(CredentialsConstants.FIELD_AUTH_ID, "gw")
+                .put("client-id", "gateway-one")
+                .put(CredentialsConstants.FIELD_SECRETS, new JsonArray()
+                        .add( new JsonObject()
+                                .put(CredentialsConstants.FIELD_SECRETS_HASH_FUNCTION, CredentialsConstants.HASH_FUNCTION_SHA512)
+                                .put(CredentialsConstants.FIELD_SECRETS_SALT, "aG9ubw==")
+                                .put("comment", "pwd: hono-secret")
+                                .put(CredentialsConstants.FIELD_SECRETS_PWD_HASH, "C9/T62m1tT4ZxxqyIiyN9fvoEqmL0qnM4/+M+GHHDzr0QzzkAUdGYyJBfxRSe4upDzb6TSC4k5cpZG17p4QCvA=="))
+                );
 
-        credentialsClient
-                .get(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, "gw", clientContext)
-                .setHandler(ctx.asyncAssertSuccess(result -> {
-                    ctx.assertEquals("gw", result.getAuthId());
-                    ctx.assertEquals(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, result.getType());
-                }));
+        // Insert it into the device Registry
+        registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
+
+            // it's successfully inserted, run the test.
+            if (r.succeeded()) {
+                final JsonObject clientContext = new JsonObject()
+                        .put("client-id", "gateway-one");
+
+                credentialsClient
+                        .get(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, "gw", clientContext)
+                        .setHandler(ctx.asyncAssertSuccess(result -> {
+                            ctx.assertEquals("gw", result.getAuthId());
+                            ctx.assertEquals(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, result.getType());
+                        }));
+            }else {
+                ctx.fail(r.cause());
+            }
+        });
     }
 
     /**
@@ -203,16 +225,39 @@ public class CredentialsAmqpIT {
     @Test
     public void testGetCredentialsNotMatchingClientContext(final TestContext ctx) {
 
-        final JsonObject clientContext = new JsonObject()
-                .put("client-id", "gateway-two");
+        testData = new JsonObject()
+                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, DEFAULT_DEVICE_ID)
+                .put(CredentialsConstants.FIELD_TYPE, CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD)
+                .put(CredentialsConstants.FIELD_AUTH_ID, "gw")
+                .put("client-id", "gateway-one")
+                .put(CredentialsConstants.FIELD_SECRETS, new JsonArray()
+                    .add( new JsonObject()
+                            .put(CredentialsConstants.FIELD_SECRETS_HASH_FUNCTION, CredentialsConstants.HASH_FUNCTION_SHA512)
+                            .put(CredentialsConstants.FIELD_SECRETS_SALT, "aG9ubw==")
+                            .put("comment", "pwd: hono-secret")
+                            .put(CredentialsConstants.FIELD_SECRETS_PWD_HASH, "C9/T62m1tT4ZxxqyIiyN9fvoEqmL0qnM4/+M+GHHDzr0QzzkAUdGYyJBfxRSe4upDzb6TSC4k5cpZG17p4QCvA=="))
+                );
 
-        credentialsClient
-                .get(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, "gw", clientContext)
-                .setHandler(ctx.asyncAssertFailure(t -> {
-                    ctx.assertEquals(
-                            HttpURLConnection.HTTP_NOT_FOUND,
-                            ((ServiceInvocationException) t).getErrorCode());
-                }));
+        // Insert it into the device Registry
+        registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
+
+            // it's successfully inserted, run the test.
+            if (r.succeeded()) {
+
+                final JsonObject clientContext = new JsonObject()
+                        .put("client-id", "gateway-two");
+
+                credentialsClient
+                        .get(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, "gw", clientContext)
+                        .setHandler(ctx.asyncAssertFailure(t -> {
+                            ctx.assertEquals(
+                                    HttpURLConnection.HTTP_NOT_FOUND,
+                                    ((ServiceInvocationException) t).getErrorCode());
+                        }));
+            }else {
+                ctx.fail(r.cause());
+            }
+        });
     }
 
     /**
@@ -223,16 +268,31 @@ public class CredentialsAmqpIT {
     @Test
     public void testGetCredentialsNotExistingClientContext(final TestContext ctx) {
 
-        final JsonObject clientContext = new JsonObject()
-                .put("client-id", "gateway-one");
+        testData = new JsonObject()
+                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, DEFAULT_DEVICE_ID)
+                .put(CredentialsConstants.FIELD_TYPE, CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD)
+                .put(CredentialsConstants.FIELD_AUTH_ID, CREDENTIALS_AUTHID1)
+                .put(CredentialsConstants.FIELD_SECRETS, getAuthId1Secrets());
 
-        credentialsClient
-                .get(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, CREDENTIALS_AUTHID1, clientContext)
-                .setHandler(ctx.asyncAssertFailure(t -> {
-                    ctx.assertEquals(
-                            HttpURLConnection.HTTP_NOT_FOUND,
-                            ((ServiceInvocationException) t).getErrorCode());
-                }));
+        // Insert it into the device Registry
+        registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
+
+            // it's successfully inserted, run the test.
+            if (r.succeeded()) {
+                final JsonObject clientContext = new JsonObject()
+                        .put("client-id", "gateway-one");
+
+                credentialsClient
+                        .get(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, CREDENTIALS_AUTHID1, clientContext)
+                        .setHandler(ctx.asyncAssertFailure(t -> {
+                            ctx.assertEquals(
+                                    HttpURLConnection.HTTP_NOT_FOUND,
+                                    ((ServiceInvocationException) t).getErrorCode());
+                        }));
+            }else {
+                ctx.fail(r.cause());
+            }
+        });
     }
 
     /**
@@ -244,11 +304,27 @@ public class CredentialsAmqpIT {
     @Test
     public void testGetCredentialsReturnsCredentialsDefaultDeviceIdAndIsEnabled(final TestContext ctx) {
 
-        credentialsClient
-            .get(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, CREDENTIALS_AUTHID1)
-            .setHandler(ctx.asyncAssertSuccess(result -> {
-                assertTrue(checkPayloadGetCredentialsContainsDefaultDeviceIdAndReturnEnabled(result));
-            }));
+        testData = new JsonObject()
+                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, DEFAULT_DEVICE_ID)
+                .put(CredentialsConstants.FIELD_TYPE, CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD)
+                .put(CredentialsConstants.FIELD_AUTH_ID, CREDENTIALS_AUTHID1)
+                .put(CredentialsConstants.FIELD_SECRETS, getAuthId1Secrets());
+
+        // Insert it into the device Registry
+        registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
+
+            // it's successfully inserted, run the test.
+            if (r.succeeded()) {
+
+                credentialsClient
+                    .get(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, CREDENTIALS_AUTHID1)
+                    .setHandler(ctx.asyncAssertSuccess(result -> {
+                        assertTrue(checkPayloadGetCredentialsContainsDefaultDeviceIdAndReturnEnabled(result));
+                    }));
+            }else {
+                ctx.fail(r.cause());
+            }
+        });
     }
 
     /**
@@ -260,11 +336,27 @@ public class CredentialsAmqpIT {
     @Test
     public void testGetCredentialsReturnsMultipleSecrets(final TestContext ctx) {
 
-        credentialsClient
-            .get(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, CREDENTIALS_AUTHID1)
-            .setHandler(ctx.asyncAssertSuccess(result -> {
-                checkPayloadGetCredentialsReturnsMultipleSecrets(result);
-            }));
+        testData = new JsonObject()
+                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, DEFAULT_DEVICE_ID)
+                .put(CredentialsConstants.FIELD_TYPE, CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD)
+                .put(CredentialsConstants.FIELD_AUTH_ID, CREDENTIALS_AUTHID1)
+                .put(CredentialsConstants.FIELD_SECRETS, getAuthId1Secrets());
+
+        // Insert it into the device Registry
+        registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
+
+            // it's successfully inserted, run the test.
+            if (r.succeeded()) {
+
+                credentialsClient
+                    .get(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, CREDENTIALS_AUTHID1)
+                    .setHandler(ctx.asyncAssertSuccess(result -> {
+                        checkPayloadGetCredentialsReturnsMultipleSecrets(result);
+                    }));
+            }else {
+                ctx.fail(r.cause());
+            }
+        });
     }
 
     /**
@@ -276,11 +368,26 @@ public class CredentialsAmqpIT {
     @Test
     public void testGetCredentialsFirstSecretCorrectPassword(final TestContext ctx) {
 
-        credentialsClient
-            .get(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, CREDENTIALS_AUTHID1)
-            .setHandler(ctx.asyncAssertSuccess(result -> {
-                checkPayloadGetCredentialsReturnsFirstSecretWithCorrectPassword(result);
-            }));
+        testData = new JsonObject()
+                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, DEFAULT_DEVICE_ID)
+                .put(CredentialsConstants.FIELD_TYPE, CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD)
+                .put(CredentialsConstants.FIELD_AUTH_ID, CREDENTIALS_AUTHID1)
+                .put(CredentialsConstants.FIELD_SECRETS, getAuthId1Secrets());
+
+        // Insert it into the device Registry
+        registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
+
+            // it's successfully inserted, run the test.
+            if (r.succeeded()) {
+                credentialsClient
+                        .get(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, CREDENTIALS_AUTHID1)
+                        .setHandler(ctx.asyncAssertSuccess(result -> {
+                            checkPayloadGetCredentialsReturnsFirstSecretWithCorrectPassword(result);
+                        }));
+            }else {
+                ctx.fail(r.cause());
+            }
+            });
     }
 
     /**
@@ -292,11 +399,26 @@ public class CredentialsAmqpIT {
     @Test
     public void testGetCredentialsFirstSecretCurrentlyActiveTimeInterval(final TestContext ctx) {
 
-        credentialsClient
-            .get(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, CREDENTIALS_AUTHID1)
-            .setHandler(ctx.asyncAssertSuccess(result -> {
-                checkPayloadGetCredentialsReturnsFirstSecretWithCurrentlyActiveTimeInterval(result);
-            }));
+        testData = new JsonObject()
+                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, DEFAULT_DEVICE_ID)
+                .put(CredentialsConstants.FIELD_TYPE, CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD)
+                .put(CredentialsConstants.FIELD_AUTH_ID, CREDENTIALS_AUTHID1)
+                .put(CredentialsConstants.FIELD_SECRETS, getAuthId1Secrets());
+
+        // Insert it into the device Registry
+        registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
+
+            // it's successfully inserted, run the test.
+            if (r.succeeded()) {
+                credentialsClient
+                    .get(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, CREDENTIALS_AUTHID1)
+                    .setHandler(ctx.asyncAssertSuccess(result -> {
+                        checkPayloadGetCredentialsReturnsFirstSecretWithCurrentlyActiveTimeInterval(result);
+                    }));
+            }else {
+                ctx.fail(r.cause());
+            }
+        });
     }
 
     /**
@@ -308,11 +430,51 @@ public class CredentialsAmqpIT {
     @Test
     public void testGetCredentialsPresharedKeyIsNotEnabled(final TestContext ctx) {
 
-        credentialsClient
-            .get(CredentialsConstants.SECRETS_TYPE_PRESHARED_KEY, CREDENTIALS_AUTHID2)
-            .setHandler(ctx.asyncAssertSuccess(result -> {
-                assertFalse(checkPayloadGetCredentialsContainsDefaultDeviceIdAndReturnEnabled(result));
-            }));
+        testData = new JsonObject()
+                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, DEFAULT_DEVICE_ID)
+                .put(CredentialsConstants.FIELD_TYPE, CredentialsConstants.SECRETS_TYPE_PRESHARED_KEY)
+                .put(CredentialsConstants.FIELD_AUTH_ID, CREDENTIALS_AUTHID2)
+                .put(CredentialsConstants.FIELD_SECRETS, new JsonArray()
+                        .add( new JsonObject()
+                                .put( CredentialsConstants.FIELD_SECRETS_NOT_BEFORE, "2017-05-01T14:00:00+01:00")
+                                .put(CredentialsConstants.FIELD_SECRETS_NOT_BEFORE, "2037-06-01T14:00:00+01:00")
+                                .put(CredentialsConstants.FIELD_SECRETS_HASH_FUNCTION, CredentialsConstants.HASH_FUNCTION_SHA512)
+                                .put(CredentialsConstants.FIELD_SECRETS_KEY, "c2VjcmV0S2V5Mg==")
+                        ));
+
+        // Insert it into the device Registry
+        registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
+
+            // it's successfully inserted, run the test.
+            if (r.succeeded()) {
+                credentialsClient
+                    .get(CredentialsConstants.SECRETS_TYPE_PRESHARED_KEY, CREDENTIALS_AUTHID2)
+                    .setHandler(ctx.asyncAssertSuccess(result -> {
+                        assertFalse(checkPayloadGetCredentialsContainsDefaultDeviceIdAndReturnEnabled(result));
+                    }));
+            }else {
+                ctx.fail(r.cause());
+            }
+        });
+    }
+
+    private JsonArray getAuthId1Secrets(){
+
+        return new JsonArray()
+                .add( new JsonObject()
+                        .put( CredentialsConstants.FIELD_SECRETS_NOT_BEFORE, "2017-05-01T14:00:00+01:00")
+                        .put(CredentialsConstants.FIELD_SECRETS_NOT_BEFORE, "2037-06-01T14:00:00+01:00")
+                        .put(CredentialsConstants.FIELD_SECRETS_HASH_FUNCTION, CredentialsConstants.HASH_FUNCTION_SHA512)
+                        .put(CredentialsConstants.FIELD_SECRETS_SALT, CREDENTIALS_PASSWORD_SALT)
+                        .put("comment", "pwd: hono-secret")
+                        .put(CredentialsConstants.FIELD_SECRETS_PWD_HASH, "C9/T62m1tT4ZxxqyIiyN9fvoEqmL0qnM4/+M+GHHDzr0QzzkAUdGYyJBfxRSe4upDzb6TSC4k5cpZG17p4QCvA=="))
+                .add(new JsonObject()
+                        .put( CredentialsConstants.FIELD_SECRETS_NOT_BEFORE, "2017-05-15T14:00:00+01:00")
+                        .put(CredentialsConstants.FIELD_SECRETS_NOT_BEFORE, "2037-05-01T14:00:00+01:00")
+                        .put(CredentialsConstants.FIELD_SECRETS_HASH_FUNCTION, CredentialsConstants.HASH_FUNCTION_SHA512)
+                        .put(CredentialsConstants.FIELD_SECRETS_SALT, "aG9ubzI=")
+                        .put("comment", "pwd: hono-secret")
+                        .put(CredentialsConstants.FIELD_SECRETS_PWD_HASH, "QDhkSQcm0HNBybnuc5irvPIgNUJn0iVoQnFSoltLOsDlfxhcQWa99l8Dhh67jSKBr7fXeSvFZ1mEojReAXz18A=="));
     }
 
     private JsonObject pickFirstSecretFromPayload(final CredentialsObject payload) {
