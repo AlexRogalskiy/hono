@@ -30,7 +30,6 @@ public class CacheTenantServiceTest extends AbstractCompleteTenantServiceTest {
     @Before
     public void setUp() {
         EmbeddedCacheManager manager = new DefaultCacheManager();
-        Cache<String, RegistryTenantObject> tenantsCache = manager.createCache("tenants", new ConfigurationBuilder().build());
         service = new CacheTenantService(manager);
     }
 
