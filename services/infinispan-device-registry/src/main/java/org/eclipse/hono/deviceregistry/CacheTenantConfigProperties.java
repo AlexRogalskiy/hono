@@ -12,5 +12,9 @@
  *******************************************************************************/
 package org.eclipse.hono.deviceregistry;
 
+/**
+ * Configuration properties for Hono's Infinispan Tenant service.
+ *
+ */
 public class CacheTenantConfigProperties {
 }

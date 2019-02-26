@@ -27,26 +27,33 @@ import org.springframework.stereotype.Repository;
 
 import java.net.HttpURLConnection;
 
+/**
+ * A Registration service that use an Infinispan as a backend service.
+ * Infinispan is an open source project providing a distributed in-memory key/value data store
+ *
+ * <p>
+ *@see <a href="https://infinspan.org">https://infinspan.org</a>
+ *
+ */
 @Repository
 @ConditionalOnProperty(name = "hono.app.type", havingValue = "infinispan", matchIfMissing = true)
 public class CacheRegistrationService extends CompleteBaseRegistrationService<CacheRegistrationConfigProperties> {
 
     Cache<RegistrationKey, JsonObject> registrationCache;
 
-    @Override
-    public void setConfig(CacheRegistrationConfigProperties configuration) {
-
-    }
     @Autowired
-    protected CacheRegistrationService(EmbeddedCacheManager cacheManager) {
+    protected CacheRegistrationService(final EmbeddedCacheManager cacheManager) {
         this.registrationCache = cacheManager.createCache("registration", new ConfigurationBuilder().build());
     }
 
+    @Override
+    public void setConfig(final CacheRegistrationConfigProperties configuration) {
+    }
 
     @Override
-    public void addDevice(String tenantId, String deviceId, JsonObject otherKeys, Handler<AsyncResult<RegistrationResult>> resultHandler) {
+    public void addDevice(final String tenantId, final String deviceId, final JsonObject otherKeys, final Handler<AsyncResult<RegistrationResult>> resultHandler) {
 
-        RegistrationKey key = new RegistrationKey(tenantId, deviceId);
+        final RegistrationKey key = new RegistrationKey(tenantId, deviceId);
 
         registrationCache.putIfAbsentAsync(key, otherKeys).thenAccept(result -> {
             if ( result == null){
@@ -58,18 +65,18 @@ public class CacheRegistrationService extends CompleteBaseRegistrationService<Ca
     }
 
     @Override
-    public void updateDevice(String tenantId, String deviceId, JsonObject otherKeys, Handler<AsyncResult<RegistrationResult>> resultHandler) {
+    public void updateDevice(final String tenantId, final String deviceId, final JsonObject otherKeys, final Handler<AsyncResult<RegistrationResult>> resultHandler) {
 
-        RegistrationKey key = new RegistrationKey(tenantId, deviceId);
+        final RegistrationKey key = new RegistrationKey(tenantId, deviceId);
         registrationCache.replaceAsync(key, otherKeys).thenAccept( result -> {
                 resultHandler.handle(Future.succeededFuture(RegistrationResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
         });
     }
 
     @Override
-    public void removeDevice(String tenantId, String deviceId, Handler<AsyncResult<RegistrationResult>> resultHandler) {
+    public void removeDevice(final String tenantId, final String deviceId, final Handler<AsyncResult<RegistrationResult>> resultHandler) {
 
-        RegistrationKey key = new RegistrationKey(tenantId, deviceId);
+        final RegistrationKey key = new RegistrationKey(tenantId, deviceId);
         registrationCache.removeAsync(key).thenAccept( result -> {
             if ( result == null){
                 resultHandler.handle(Future.succeededFuture(RegistrationResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
@@ -80,8 +87,8 @@ public class CacheRegistrationService extends CompleteBaseRegistrationService<Ca
     }
 
     @Override
-    public void getDevice(String tenantId, String deviceId, Handler<AsyncResult<RegistrationResult>> resultHandler) {
-        RegistrationKey key = new RegistrationKey(tenantId, deviceId);
+    public void getDevice(final String tenantId, final String deviceId, final Handler<AsyncResult<RegistrationResult>> resultHandler) {
+        final RegistrationKey key = new RegistrationKey(tenantId, deviceId);
 
         registrationCache.getAsync(key).thenAccept( result -> {
             if ( result == null){

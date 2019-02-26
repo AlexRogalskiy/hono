@@ -41,6 +41,14 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * A credentials service that use an Infinispan as a backend service.
+ * Infinispan is an open source project providing a distributed in-memory key/value data store
+ *
+ * <p>
+ *@see <a href="https://infinspan.org">https://infinspan.org</a>
+ *
+ */
 @Repository
 @ConditionalOnProperty(name = "hono.app.type", havingValue = "infinispan", matchIfMissing = true)
 public class CacheCredentialService extends CompleteBaseCredentialsService<CacheCredentialConfigProperties> {
@@ -54,23 +62,24 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
      * @throws NullPointerException if encoder is {@code null}.
      */
     @Autowired
-    protected CacheCredentialService(EmbeddedCacheManager cacheManager, HonoPasswordEncoder pwdEncoder) {
+    protected CacheCredentialService(final EmbeddedCacheManager cacheManager, final HonoPasswordEncoder pwdEncoder) {
         super(pwdEncoder);
         this.credentialsCache = cacheManager.createCache("credentials", new ConfigurationBuilder().build());
     }
 
     @Override
-    public void setConfig(CacheCredentialConfigProperties configuration) {
+    public void setConfig(final CacheCredentialConfigProperties configuration) {
     }
 
     @Override
-    public void add(String tenantId, JsonObject credentialsJson, Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
+    public void add(final String tenantId, final JsonObject credentialsJson, final Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
 
+        System.out.println("ADD : "+credentialsJson);
         final CredentialsObject credentials = Optional.ofNullable(credentialsJson)
                 .map(json -> json.mapTo(CredentialsObject.class)).orElse(null);
 
-        CredentialsKey key = new CredentialsKey(tenantId, credentials.getAuthId(), credentials.getType());
-        RegistryCredentialObject registryCredential = new RegistryCredentialObject(credentials, tenantId, credentialsJson);
+        final CredentialsKey key = new CredentialsKey(tenantId, credentials.getAuthId(), credentials.getType());
+        final RegistryCredentialObject registryCredential = new RegistryCredentialObject(credentials, tenantId, credentialsJson);
 
         credentialsCache.putIfAbsentAsync(key, registryCredential).thenAccept(result -> {
             if ( result == null){
@@ -111,7 +120,8 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
         Objects.requireNonNull(authId);
         Objects.requireNonNull(resultHandler);
 
-        CredentialsKey key = new CredentialsKey(tenantId, authId, type);
+        final CredentialsKey key = new CredentialsKey(tenantId, authId, type);
+
        credentialsCache.getAsync(key).thenAccept(credential -> {
             if (credential == null) {
                resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
@@ -119,7 +129,7 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
                 if ( contextMatches(clientContext, credential.getOriginalJson()) ) {
                     resultHandler.handle(Future.succeededFuture(
                             CredentialsResult.from(HttpURLConnection.HTTP_OK, JsonObject.mapFrom(credential.getOriginalJson()), CacheDirective.noCacheDirective())));
-                } else{
+                } else {
                     resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
                 }
             } else {
@@ -130,13 +140,13 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
     }
 
     @Override
-    public void update(String tenantId, JsonObject otherKeys, Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
+    public void update(final String tenantId, final JsonObject otherKeys, final Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
 
         final CredentialsObject credentials = Optional.ofNullable(otherKeys)
                 .map(json -> json.mapTo(CredentialsObject.class)).orElse(null);
 
-        CredentialsKey key = new CredentialsKey(tenantId, credentials.getAuthId(), credentials.getType());
-        RegistryCredentialObject registryCredential = new RegistryCredentialObject(credentials, tenantId, otherKeys);
+        final CredentialsKey key = new CredentialsKey(tenantId, credentials.getAuthId(), credentials.getType());
+        final RegistryCredentialObject registryCredential = new RegistryCredentialObject(credentials, tenantId, otherKeys);
 
         credentialsCache.replaceAsync(key, registryCredential).thenAccept(result -> {
                     resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
@@ -145,9 +155,9 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
     }
 
     @Override
-    public void remove(String tenantId, String type, String authId, Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
+    public void remove(final String tenantId, final String type, final String authId, final Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
 
-        CredentialsKey key = new CredentialsKey(tenantId, authId, type);
+        final CredentialsKey key = new CredentialsKey(tenantId, authId, type);
         credentialsCache.removeAsync(key).thenAccept(result -> {
                     resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
                 }
@@ -155,11 +165,11 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
     }
 
     @Override
-    public void removeAll(String tenantId, String deviceId, Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
+    public void removeAll(final String tenantId, final String deviceId, final Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
 
-        List<RegistryCredentialObject>  matches = queryAllCredentialsForDevice(tenantId, deviceId);
+        final List<RegistryCredentialObject>  matches = queryAllCredentialsForDevice(tenantId, deviceId);
         matches.forEach(registryCredential -> {
-            CredentialsKey key = new CredentialsKey(
+            final CredentialsKey key = new CredentialsKey(
                     tenantId,
                     registryCredential.getOriginalJson().getString(CredentialsConstants.FIELD_AUTH_ID),
                     registryCredential.getOriginalJson().getString(CredentialsConstants.FIELD_TYPE));
@@ -169,9 +179,9 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
     }
 
     @Override
-    public void getAll(String tenantId, String deviceId, Span span, Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
+    public void getAll(final String tenantId, final String deviceId, final Span span, final Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
 
-        JsonArray creds = new JsonArray();
+        final JsonArray creds = new JsonArray();
 
         queryAllCredentialsForDevice(tenantId, deviceId).forEach( result ->{
             creds.add(JsonObject.mapFrom(result.getOriginalJson()));
@@ -189,11 +199,11 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
         }
     }
 
-    private List<RegistryCredentialObject> queryAllCredentialsForDevice(String tenantId, String deviceId){
+    private List<RegistryCredentialObject> queryAllCredentialsForDevice(final String tenantId, final String deviceId){
         // Obtain a query factory for the cache
-        QueryFactory queryFactory = Search.getQueryFactory(credentialsCache);
+        final QueryFactory queryFactory = Search.getQueryFactory(credentialsCache);
         // TODO : async request ?
-        Query query = queryFactory.from(RegistryCredentialObject.class)
+        final Query query = queryFactory.from(RegistryCredentialObject.class)
                 .having("deviceId").eq(deviceId)
                 .and().having("tenantId").eq(tenantId)
                 .build();
@@ -202,7 +212,7 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
         return query.list();
     }
 
-    private boolean contextMatches(JsonObject clientContext, JsonObject storedCredential) {
+    private boolean contextMatches(final JsonObject clientContext, final JsonObject storedCredential) {
         final AtomicBoolean match = new AtomicBoolean(true);
         clientContext.forEach(field -> {
             if (storedCredential.containsKey(field.getKey())) {

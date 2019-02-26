@@ -16,7 +16,6 @@ package org.eclipse.hono.deviceregistry;
 import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -32,6 +31,12 @@ public class InfinispanRegistryConfig extends ApplicationConfig {
     @Value("${infinispan.config.file}")
     private String infinispanConfigFile;
 
+    /**
+     * Create an Infinispan EmbeddedCacheManager using a provided config file.
+     * If no config is provided, default settings will be used.
+     *
+     * @return an EmbeddedCacheManager bean.
+     */
     @Bean
     public EmbeddedCacheManager getCacheManager() {
         try{

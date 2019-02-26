@@ -12,5 +12,9 @@
  *******************************************************************************/
 package org.eclipse.hono.deviceregistry;
 
+/**
+ * Configuration properties for Hono's Infinispan Registration service.
+ *
+ */
 public class CacheRegistrationConfigProperties {
 }

@@ -8,21 +8,15 @@ hono:
   auth:
     host: localhost #hono-service-auth.hono
     port: 35671
-    hostnameVerificationRequired: false
-    keyPath: src/test/resources/certificates/device-registry-key.pem
-    certPath: src/test/resources/certificates/jwt/device-registry-cert.pem
-    trustStorePath: src/test/resources/certificates/trusted-certs.pem
     name: device-registry
     validation:
-      certPath: src/test/resources/jwt/auth-server-cert.pem
+      certPath: /etc/hono/certs/auth-server-cert.pem
   registry:
     amqp:
       Port: 25671
       insecurePortEnabled: true
       insecurePortBindAddress: 0.0.0.0
       insecurePort: 25672
-      keyStorePath: src/test/resources/certificates/deviceRegistryKeyStore.p12
-      KeyStorePassword: deviceregistrykeys
     rest:
       insecurePortEnabled: true
       insecurePort: 28080
@@ -32,13 +26,7 @@ hono:
         sharedSecret: sdgfsdafazufgsdafjhfgsdajfgwhriojsdafjlksdhfgsa8fg452368gdf
   credentials:
     svc:
-      filename: /etc/hono/credentials.json
       maxBcryptIterations: 10
-      useEmbeddedCache: true
-  tenant:
-    svc:
-      filename: /etc/hono/tenants.json
-      saveToFile: false
   metrics:
     legacy: false
 infinispan:

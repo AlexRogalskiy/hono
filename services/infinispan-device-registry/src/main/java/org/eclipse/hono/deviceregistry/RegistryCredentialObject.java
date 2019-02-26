@@ -15,13 +15,26 @@ package org.eclipse.hono.deviceregistry;
 import io.vertx.core.json.JsonObject;
 import org.eclipse.hono.util.CredentialsObject;
 
+/**
+ * A custom class to be used as value in the backend key-value storage.
+ * This store credentials details.
+ *
+ *  See {@link org.eclipse.hono.deviceregistry.CacheTenantService CacheTenantService} class.
+ */
 public class RegistryCredentialObject {
 
     private final String tenantId;
     private final String deviceId;
     private final JsonObject originalJson;
 
-    public RegistryCredentialObject(CredentialsObject honoCredential, String tenantId, JsonObject originalJson){
+    /**
+     * Create a a RegistryCredentialObject with the credentials details.
+     *
+     * @param honoCredential the credential object, in a {@link org.eclipse.hono.util.CredentialsObject Hono CredentialsObject util class}.
+     * @param tenantId the tenant ID associated with the credential.
+     * @param originalJson the raw JSON object contained in the original creation request.
+     */
+    public RegistryCredentialObject(final CredentialsObject honoCredential, final String tenantId, final JsonObject originalJson){
         this.tenantId = tenantId;
         this.deviceId = honoCredential.getDeviceId();
         this.originalJson = originalJson;
@@ -29,10 +42,6 @@ public class RegistryCredentialObject {
 
     public JsonObject getOriginalJson() {
         return originalJson;
-    }
-
-    public String getTenantId() {
-        return tenantId;
     }
 
     public String getDeviceId(){

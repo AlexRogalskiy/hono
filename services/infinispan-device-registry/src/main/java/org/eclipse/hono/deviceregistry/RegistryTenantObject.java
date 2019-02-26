@@ -14,6 +14,12 @@ package org.eclipse.hono.deviceregistry;
 
 import org.eclipse.hono.util.TenantObject;
 
+/**
+ * A custom class to be used as value in the backend key-value storage.
+ * This store tenants details.
+ *
+ *  See {@link org.eclipse.hono.deviceregistry.CacheTenantService CacheTenantService} class.
+ */
 public class RegistryTenantObject {
 
     //TODO add infinispan anotations
@@ -23,33 +29,24 @@ public class RegistryTenantObject {
 
     private TenantObject tenantObject;
 
-    public RegistryTenantObject(TenantObject tenant) {
+
+    /**
+     * Create a a RegistryTenantObject with the Tenant details.
+     * @param tenant the tenant object, in a {@link org.eclipse.hono.util.TenantObject Hono TenantObject util class}.
+     */
+    public RegistryTenantObject(final TenantObject tenant) {
         this.tenantId = tenant.getTenantId();
 
         if (tenant.getTrustedCaSubjectDn() != null ){
             this.trustedCa = tenant.getTrustedCaSubjectDn().getName();
-        } else this.trustedCa = null;
+        } else {
+            this.trustedCa = null;
+        }
 
         this.tenantObject = tenant;
     }
 
-    public String getTenantId() {
-        return tenantId;
-    }
-
-    public String getTrustedCa() {
-        return trustedCa;
-    }
-
-    public void setTrustedCa(String trustedCa) {
-        this.trustedCa = trustedCa;
-    }
-
     public TenantObject getTenantObject() {
         return tenantObject;
-    }
-
-    public void setTenantObject(TenantObject tenantObject) {
-        this.tenantObject = tenantObject;
     }
 }

@@ -14,47 +14,40 @@ package org.eclipse.hono.deviceregistry;
 
 import java.util.Objects;
 
+/**
+ * A custom class to be used as key in the backend key-value storage.
+ * This uses the uniques values of a credential to create a unique key to store the credentials details.
+ *
+ *  See {@link org.eclipse.hono.deviceregistry.CacheCredentialService CacheCredentialService} class.
+ */
 public class CredentialsKey {
 
     String tenantId;
     String authId;
     String type;
 
-    public CredentialsKey(String tenantId, String authId, String type) {
+    /**
+     * Creates a new CredentialsKey. Used by CacheCredentialsService.
+     *
+     * @param tenantId the id of the tenant owning the registration key.
+     * @param authId the auth-id used in the credential.
+     * @param type the the type of the credential.
+     */
+    public CredentialsKey(final String tenantId, final String authId, final String type) {
         this.tenantId = tenantId;
         this.authId = authId;
-        this.type = type;
-    }
-
-    public String getTenantId() {
-        return tenantId;
-    }
-
-    public void setTenantId(String tenantId) {
-        this.tenantId = tenantId;
-    }
-
-    public String getAuthId() {
-        return authId;
-    }
-
-    public void setAuthId(String authId) {
-        this.authId = authId;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
         this.type = type;
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        CredentialsKey that = (CredentialsKey) o;
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final CredentialsKey that = (CredentialsKey) o;
         return Objects.equals(tenantId, that.tenantId) &&
                 Objects.equals(authId, that.authId) &&
                 Objects.equals(type, that.type);
