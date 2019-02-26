@@ -26,6 +26,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.concurrent.TimeUnit;
 
+import io.vertx.ext.unit.Async;
 import org.eclipse.hono.client.CredentialsClient;
 import org.eclipse.hono.client.HonoClient;
 import org.eclipse.hono.client.ServiceInvocationException;
@@ -101,15 +102,21 @@ public class CredentialsAmqpIT {
     /**
      * Remove the fixture from the device registry if the test had set up any.
      *
+     * @param ctx The vert.x test context.
      */
     @After
-    public void cleanupDeviceRegistry(){
+    public void cleanupDeviceRegistry(final TestContext ctx){
+
         if (testData != null) {
+            final Async clean = ctx.async();
             registryHttpClient.removeCredentials(
                     Constants.DEFAULT_TENANT,
                     testData.getString(CredentialsConstants.FIELD_AUTH_ID),
                     testData.getString(CredentialsConstants.FIELD_TYPE)
-            );
+            ).setHandler(r -> {
+               clean.complete();
+            });
+            clean.await();
             testData = null;
         }
     }
@@ -158,6 +165,7 @@ public class CredentialsAmqpIT {
                 .put(CredentialsConstants.FIELD_AUTH_ID, CREDENTIALS_AUTHID1)
                 .put(CredentialsConstants.FIELD_SECRETS, getAuthId1Secrets());
 
+        final Async done = ctx.async();
         // Insert it into the device Registry
         registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
 
@@ -168,11 +176,13 @@ public class CredentialsAmqpIT {
                         .setHandler(ctx.asyncAssertSuccess(result -> {
                             ctx.assertEquals(CREDENTIALS_AUTHID1, result.getAuthId());
                             ctx.assertEquals(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, result.getType());
+                            done.complete();
                         }));
             }else {
                 ctx.fail(r.cause());
             }
         });
+        done.await();
     }
 
 /**
@@ -197,24 +207,27 @@ public class CredentialsAmqpIT {
                                 .put(CredentialsConstants.FIELD_SECRETS_PWD_HASH, "C9/T62m1tT4ZxxqyIiyN9fvoEqmL0qnM4/+M+GHHDzr0QzzkAUdGYyJBfxRSe4upDzb6TSC4k5cpZG17p4QCvA=="))
                 );
 
+        final JsonObject clientContext = new JsonObject()
+                .put("client-id", "gateway-one");
+
+        final Async done = ctx.async();
         // Insert it into the device Registry
         registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
 
             // it's successfully inserted, run the test.
             if (r.succeeded()) {
-                final JsonObject clientContext = new JsonObject()
-                        .put("client-id", "gateway-one");
-
                 credentialsClient
                         .get(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, "gw", clientContext)
                         .setHandler(ctx.asyncAssertSuccess(result -> {
                             ctx.assertEquals("gw", result.getAuthId());
                             ctx.assertEquals(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, result.getType());
+                            done.complete();
                         }));
             }else {
                 ctx.fail(r.cause());
             }
         });
+        done.await();
     }
 
     /**
@@ -238,6 +251,7 @@ public class CredentialsAmqpIT {
                             .put(CredentialsConstants.FIELD_SECRETS_PWD_HASH, "C9/T62m1tT4ZxxqyIiyN9fvoEqmL0qnM4/+M+GHHDzr0QzzkAUdGYyJBfxRSe4upDzb6TSC4k5cpZG17p4QCvA=="))
                 );
 
+        final Async done = ctx.async();
         // Insert it into the device Registry
         registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
 
@@ -253,11 +267,13 @@ public class CredentialsAmqpIT {
                             ctx.assertEquals(
                                     HttpURLConnection.HTTP_NOT_FOUND,
                                     ((ServiceInvocationException) t).getErrorCode());
+                            done.complete();
                         }));
             }else {
                 ctx.fail(r.cause());
             }
         });
+        done.await();
     }
 
     /**
@@ -274,6 +290,7 @@ public class CredentialsAmqpIT {
                 .put(CredentialsConstants.FIELD_AUTH_ID, CREDENTIALS_AUTHID1)
                 .put(CredentialsConstants.FIELD_SECRETS, getAuthId1Secrets());
 
+        final Async done = ctx.async();
         // Insert it into the device Registry
         registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
 
@@ -288,11 +305,13 @@ public class CredentialsAmqpIT {
                             ctx.assertEquals(
                                     HttpURLConnection.HTTP_NOT_FOUND,
                                     ((ServiceInvocationException) t).getErrorCode());
+                            done.complete();
                         }));
             }else {
                 ctx.fail(r.cause());
             }
         });
+        done.await();
     }
 
     /**
@@ -310,6 +329,7 @@ public class CredentialsAmqpIT {
                 .put(CredentialsConstants.FIELD_AUTH_ID, CREDENTIALS_AUTHID1)
                 .put(CredentialsConstants.FIELD_SECRETS, getAuthId1Secrets());
 
+        final Async done = ctx.async();
         // Insert it into the device Registry
         registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
 
@@ -320,11 +340,13 @@ public class CredentialsAmqpIT {
                     .get(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, CREDENTIALS_AUTHID1)
                     .setHandler(ctx.asyncAssertSuccess(result -> {
                         assertTrue(checkPayloadGetCredentialsContainsDefaultDeviceIdAndReturnEnabled(result));
+                        done.complete();
                     }));
             }else {
                 ctx.fail(r.cause());
             }
         });
+        done.await();
     }
 
     /**
@@ -342,6 +364,7 @@ public class CredentialsAmqpIT {
                 .put(CredentialsConstants.FIELD_AUTH_ID, CREDENTIALS_AUTHID1)
                 .put(CredentialsConstants.FIELD_SECRETS, getAuthId1Secrets());
 
+        final Async done = ctx.async();
         // Insert it into the device Registry
         registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
 
@@ -352,11 +375,13 @@ public class CredentialsAmqpIT {
                     .get(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, CREDENTIALS_AUTHID1)
                     .setHandler(ctx.asyncAssertSuccess(result -> {
                         checkPayloadGetCredentialsReturnsMultipleSecrets(result);
+                        done.complete();
                     }));
             }else {
                 ctx.fail(r.cause());
             }
         });
+        done.await();
     }
 
     /**
@@ -374,6 +399,7 @@ public class CredentialsAmqpIT {
                 .put(CredentialsConstants.FIELD_AUTH_ID, CREDENTIALS_AUTHID1)
                 .put(CredentialsConstants.FIELD_SECRETS, getAuthId1Secrets());
 
+        final Async done = ctx.async();
         // Insert it into the device Registry
         registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
 
@@ -383,11 +409,13 @@ public class CredentialsAmqpIT {
                         .get(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, CREDENTIALS_AUTHID1)
                         .setHandler(ctx.asyncAssertSuccess(result -> {
                             checkPayloadGetCredentialsReturnsFirstSecretWithCorrectPassword(result);
+                            done.complete();
                         }));
             }else {
                 ctx.fail(r.cause());
             }
             });
+        done.await();
     }
 
     /**
@@ -405,6 +433,7 @@ public class CredentialsAmqpIT {
                 .put(CredentialsConstants.FIELD_AUTH_ID, CREDENTIALS_AUTHID1)
                 .put(CredentialsConstants.FIELD_SECRETS, getAuthId1Secrets());
 
+        final Async done = ctx.async();
         // Insert it into the device Registry
         registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
 
@@ -414,11 +443,13 @@ public class CredentialsAmqpIT {
                     .get(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, CREDENTIALS_AUTHID1)
                     .setHandler(ctx.asyncAssertSuccess(result -> {
                         checkPayloadGetCredentialsReturnsFirstSecretWithCurrentlyActiveTimeInterval(result);
+                        done.complete();
                     }));
             }else {
                 ctx.fail(r.cause());
             }
         });
+        done.await();
     }
 
     /**
@@ -434,6 +465,7 @@ public class CredentialsAmqpIT {
                 .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, DEFAULT_DEVICE_ID)
                 .put(CredentialsConstants.FIELD_TYPE, CredentialsConstants.SECRETS_TYPE_PRESHARED_KEY)
                 .put(CredentialsConstants.FIELD_AUTH_ID, CREDENTIALS_AUTHID2)
+                .put(CredentialsConstants.FIELD_ENABLED, false)
                 .put(CredentialsConstants.FIELD_SECRETS, new JsonArray()
                         .add( new JsonObject()
                                 .put( CredentialsConstants.FIELD_SECRETS_NOT_BEFORE, "2017-05-01T14:00:00+01:00")
@@ -442,6 +474,7 @@ public class CredentialsAmqpIT {
                                 .put(CredentialsConstants.FIELD_SECRETS_KEY, "c2VjcmV0S2V5Mg==")
                         ));
 
+        final Async done = ctx.async();
         // Insert it into the device Registry
         registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
 
@@ -451,11 +484,13 @@ public class CredentialsAmqpIT {
                     .get(CredentialsConstants.SECRETS_TYPE_PRESHARED_KEY, CREDENTIALS_AUTHID2)
                     .setHandler(ctx.asyncAssertSuccess(result -> {
                         assertFalse(checkPayloadGetCredentialsContainsDefaultDeviceIdAndReturnEnabled(result));
+                        done.complete();
                     }));
             }else {
                 ctx.fail(r.cause());
             }
         });
+        done.await();
     }
 
     private JsonArray getAuthId1Secrets(){
@@ -463,14 +498,14 @@ public class CredentialsAmqpIT {
         return new JsonArray()
                 .add( new JsonObject()
                         .put( CredentialsConstants.FIELD_SECRETS_NOT_BEFORE, "2017-05-01T14:00:00+01:00")
-                        .put(CredentialsConstants.FIELD_SECRETS_NOT_BEFORE, "2037-06-01T14:00:00+01:00")
+                        .put(CredentialsConstants.FIELD_SECRETS_NOT_AFTER, "2037-06-01T14:00:00+01:00")
                         .put(CredentialsConstants.FIELD_SECRETS_HASH_FUNCTION, CredentialsConstants.HASH_FUNCTION_SHA512)
                         .put(CredentialsConstants.FIELD_SECRETS_SALT, CREDENTIALS_PASSWORD_SALT)
                         .put("comment", "pwd: hono-secret")
                         .put(CredentialsConstants.FIELD_SECRETS_PWD_HASH, "C9/T62m1tT4ZxxqyIiyN9fvoEqmL0qnM4/+M+GHHDzr0QzzkAUdGYyJBfxRSe4upDzb6TSC4k5cpZG17p4QCvA=="))
                 .add(new JsonObject()
                         .put( CredentialsConstants.FIELD_SECRETS_NOT_BEFORE, "2017-05-15T14:00:00+01:00")
-                        .put(CredentialsConstants.FIELD_SECRETS_NOT_BEFORE, "2037-05-01T14:00:00+01:00")
+                        .put(CredentialsConstants.FIELD_SECRETS_NOT_AFTER, "2037-05-01T14:00:00+01:00")
                         .put(CredentialsConstants.FIELD_SECRETS_HASH_FUNCTION, CredentialsConstants.HASH_FUNCTION_SHA512)
                         .put(CredentialsConstants.FIELD_SECRETS_SALT, "aG9ubzI=")
                         .put("comment", "pwd: hono-secret")
