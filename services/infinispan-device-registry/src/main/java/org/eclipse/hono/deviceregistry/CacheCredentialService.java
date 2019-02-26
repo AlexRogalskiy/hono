@@ -125,16 +125,18 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
        credentialsCache.getAsync(key).thenAccept(credential -> {
             if (credential == null) {
                resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
-            } else if (clientContext != null) {
+            } else if ( !clientContext.isEmpty()) {
                 if ( contextMatches(clientContext, credential.getOriginalJson()) ) {
                     resultHandler.handle(Future.succeededFuture(
-                            CredentialsResult.from(HttpURLConnection.HTTP_OK, JsonObject.mapFrom(credential.getOriginalJson()), CacheDirective.noCacheDirective())));
+                            CredentialsResult.from(HttpURLConnection.HTTP_OK,
+                                    JsonObject.mapFrom(credential.getOriginalJson()), CacheDirective.noCacheDirective())));
                 } else {
                     resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
                 }
             } else {
                 resultHandler.handle(Future.succeededFuture(
-                        CredentialsResult.from(HttpURLConnection.HTTP_OK, JsonObject.mapFrom(credential.getOriginalJson()), CacheDirective.noCacheDirective())));
+                        CredentialsResult.from(HttpURLConnection.HTTP_OK,
+                                JsonObject.mapFrom(credential.getOriginalJson()), CacheDirective.noCacheDirective())));
             }
         });
     }

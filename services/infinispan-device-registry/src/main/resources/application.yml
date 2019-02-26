@@ -7,10 +7,10 @@ hono:
     startupTimeout: 90
   auth:
     host: localhost #hono-service-auth.hono
-    port: 35671
+    port: 35672
     name: device-registry
     validation:
-      certPath: /etc/hono/certs/auth-server-cert.pem
+      certPath: src/main/resources/jwt/auth-server-cert.pem
   registry:
     amqp:
       Port: 25671
