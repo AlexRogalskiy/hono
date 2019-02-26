@@ -15,21 +15,26 @@ package org.eclipse.hono.deviceregistry;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.eclipse.hono.service.tenant.AbstractCompleteTenantServiceTest;
 import org.eclipse.hono.service.tenant.CompleteTenantService;
-import org.infinispan.Cache;
-import org.infinispan.configuration.cache.ConfigurationBuilder;
 import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 
+/**
+ * Tests verifying behavior of {@link CacheTenantService}.
+ *
+ */
 @RunWith(VertxUnitRunner.class)
 public class CacheTenantServiceTest extends AbstractCompleteTenantServiceTest {
 
     CacheTenantService service;
 
+    /**
+     * Spin up the service using Infinispan EmbeddedCache.
+     */
     @Before
     public void setUp() {
-        EmbeddedCacheManager manager = new DefaultCacheManager();
+        final EmbeddedCacheManager manager = new DefaultCacheManager();
         service = new CacheTenantService(manager);
     }
 
