@@ -230,6 +230,40 @@ public class FileBasedCredentialsServiceTest extends AbstractCompleteCredentials
     }
 
     /**
+     * Verifies that credentials are ignored if the startEmpty property is set.
+     *
+     * @param ctx The test context.
+     */
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Test
+    public void testDoStartIgnoreCredentialIfStartEmptyIsSet(final TestContext ctx) {
+
+        // GIVEN a service configured with a file name and startEmpty set to true
+        props.setFilename(FILE_NAME);
+        props.setStartEmpty(true);
+        when(fileSystem.existsBlocking(props.getFilename())).thenReturn(Boolean.TRUE);
+        doAnswer(invocation -> {
+            final Buffer data = DeviceRegistryTestUtils.readFile(FILE_NAME);
+            final Handler handler = invocation.getArgument(1);
+            handler.handle(Future.succeededFuture(data));
+            return null;
+        }).when(fileSystem).readFile(eq(props.getFilename()), any(Handler.class));
+
+        // WHEN the service is started
+        final Async startup = ctx.async();
+        final Future<Void> startFuture = Future.future();
+        startFuture.setHandler(ctx.asyncAssertSuccess(s -> {
+            startup.complete();
+        }));
+        svc.doStart(startFuture);
+
+        // THEN the credentials from the file are not loaded
+        startup.await();
+        assertNotRegistered(svc, Constants.DEFAULT_TENANT, "sensor1", CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, ctx);
+    }
+
+
+    /**
      * Verifies that the file written by the registry when persisting the registry's contents can
      * be loaded in again.
      *

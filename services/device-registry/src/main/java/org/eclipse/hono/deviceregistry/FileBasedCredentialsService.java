@@ -139,7 +139,7 @@ public final class FileBasedCredentialsService extends CompleteBaseCredentialsSe
 
         if (getConfig().getFilename() == null || getConfig().isStartEmpty()) {
             // no need to load anything
-            log.debug("Either filename is null or empty start is set, won't load any credentials");
+            log.info("Either filename is null or empty start is set, won't load any credentials");
             return Future.succeededFuture();
         } else {
             final Future<Buffer> readResult = Future.future();
