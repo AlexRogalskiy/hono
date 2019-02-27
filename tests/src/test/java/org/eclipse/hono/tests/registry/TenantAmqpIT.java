@@ -22,6 +22,7 @@ import org.eclipse.hono.client.HonoClient;
 import org.eclipse.hono.client.ServiceInvocationException;
 import org.eclipse.hono.client.TenantClient;
 import org.eclipse.hono.tests.IntegrationTestSupport;
+import org.eclipse.hono.util.Constants;
 import org.eclipse.hono.util.TenantConstants;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -110,7 +111,7 @@ public class TenantAmqpIT {
     public void testGetTenant(final TestContext ctx) {
 
         // Prepare the identities to insert
-        final String tenantId = helper.getRandomTenantId();
+        final String tenantId = Constants.DEFAULT_TENANT;
 
         final Async done = ctx.async();
         // Insert into the device Registry
@@ -199,7 +200,7 @@ public class TenantAmqpIT {
     public void testGetByCaSucceeds(final TestContext ctx) {
 
         // Prepare the identities to insert
-        final String tenantId = helper.getRandomTenantId();
+        final String tenantId = Constants.DEFAULT_TENANT;
 
         // create payload
         final JsonObject payload = new JsonObject()
