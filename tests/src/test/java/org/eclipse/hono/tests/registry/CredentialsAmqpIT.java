@@ -30,7 +30,6 @@ import io.vertx.ext.unit.Async;
 import org.eclipse.hono.client.CredentialsClient;
 import org.eclipse.hono.client.HonoClient;
 import org.eclipse.hono.client.ServiceInvocationException;
-import org.eclipse.hono.tests.DeviceRegistryHttpClient;
 import org.eclipse.hono.tests.IntegrationTestSupport;
 import org.eclipse.hono.util.Constants;
 import org.eclipse.hono.util.CredentialsConstants;
@@ -60,15 +59,12 @@ public class CredentialsAmqpIT {
     private static final String CREDENTIALS_AUTHID2 = "little-sensor2";
     private static final String CREDENTIALS_USER_PASSWORD = "hono-secret";
     private static final byte[] CREDENTIALS_PASSWORD_SALT = "hono".getBytes(StandardCharsets.UTF_8);
-    private static final String DEFAULT_DEVICE_ID = "4711";
 
     private static final Vertx vertx = Vertx.vertx();
 
     private static HonoClient client;
     private static CredentialsClient credentialsClient;
-    private static DeviceRegistryHttpClient registryHttpClient;
-
-    private static JsonObject testData;
+    private static IntegrationTestSupport helper;
 
     /**
      * Global timeout for all test cases.
@@ -84,6 +80,9 @@ public class CredentialsAmqpIT {
     @BeforeClass
     public static void prepareDeviceRegistry(final TestContext ctx) {
 
+        helper = new IntegrationTestSupport(vertx);
+        helper.initRegistryClient(ctx);
+
         client = DeviceRegistryAmqpTestSupport.prepareDeviceRegistryClient(vertx,
                 IntegrationTestSupport.HONO_USER, IntegrationTestSupport.HONO_PWD);
 
@@ -92,11 +91,6 @@ public class CredentialsAmqpIT {
             .setHandler(ctx.asyncAssertSuccess(r -> {
                 credentialsClient = r;
             }));
-
-        registryHttpClient = new DeviceRegistryHttpClient(
-                vertx,
-                IntegrationTestSupport.HONO_DEVICEREGISTRY_HOST,
-                IntegrationTestSupport.HONO_DEVICEREGISTRY_HTTP_PORT);
     }
 
     /**
@@ -106,19 +100,7 @@ public class CredentialsAmqpIT {
      */
     @After
     public void cleanupDeviceRegistry(final TestContext ctx){
-
-        if (testData != null) {
-            final Async clean = ctx.async();
-            registryHttpClient.removeCredentials(
-                    Constants.DEFAULT_TENANT,
-                    testData.getString(CredentialsConstants.FIELD_AUTH_ID),
-                    testData.getString(CredentialsConstants.FIELD_TYPE)
-            ).setHandler(r -> {
-               clean.complete();
-            });
-            clean.await();
-            testData = null;
-        }
+        helper.deleteObjects(ctx);
     }
 
     /**
@@ -159,15 +141,16 @@ public class CredentialsAmqpIT {
     public void testGetCredentialsReturnsCredentialsTypeAndAuthId(final TestContext ctx) {
 
         // Prepare the credential to insert
-        testData = new JsonObject()
-                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, DEFAULT_DEVICE_ID)
+        final String deviceId = helper.getRandomDeviceId(Constants.DEFAULT_TENANT);
+        final JsonObject payload = new JsonObject()
+                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, deviceId)
                 .put(CredentialsConstants.FIELD_TYPE, CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD)
                 .put(CredentialsConstants.FIELD_AUTH_ID, CREDENTIALS_AUTHID1)
                 .put(CredentialsConstants.FIELD_SECRETS, getAuthId1Secrets());
 
         final Async done = ctx.async();
         // Insert it into the device Registry
-        registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
+        helper.registry.addCredentials(Constants.DEFAULT_TENANT, payload).setHandler(r -> {
 
             // it's successfully inserted, run the test.
             if (r.succeeded()) {
@@ -194,8 +177,9 @@ public class CredentialsAmqpIT {
     public void testGetCredentialsExistingClientContext(final TestContext ctx) {
 
         // Prepare the credential to insert
-        testData = new JsonObject()
-                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, "gw-1")
+        final String deviceId = helper.getRandomDeviceId(Constants.DEFAULT_TENANT);
+        final JsonObject payload = new JsonObject()
+                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, deviceId)
                 .put(CredentialsConstants.FIELD_TYPE, CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD)
                 .put(CredentialsConstants.FIELD_AUTH_ID, "gw")
                 .put("client-id", "gateway-one")
@@ -212,7 +196,7 @@ public class CredentialsAmqpIT {
 
         final Async done = ctx.async();
         // Insert it into the device Registry
-        registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
+        helper.registry.addCredentials(Constants.DEFAULT_TENANT, payload).setHandler(r -> {
 
             // it's successfully inserted, run the test.
             if (r.succeeded()) {
@@ -238,8 +222,10 @@ public class CredentialsAmqpIT {
     @Test
     public void testGetCredentialsNotMatchingClientContext(final TestContext ctx) {
 
-        testData = new JsonObject()
-                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, DEFAULT_DEVICE_ID)
+        // Prepare the credential to insert
+        final String deviceId = helper.getRandomDeviceId(Constants.DEFAULT_TENANT);
+        final JsonObject payload = new JsonObject()
+                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, deviceId)
                 .put(CredentialsConstants.FIELD_TYPE, CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD)
                 .put(CredentialsConstants.FIELD_AUTH_ID, "gw")
                 .put("client-id", "gateway-one")
@@ -253,7 +239,7 @@ public class CredentialsAmqpIT {
 
         final Async done = ctx.async();
         // Insert it into the device Registry
-        registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
+        helper.registry.addCredentials(Constants.DEFAULT_TENANT, payload).setHandler(r -> {
 
             // it's successfully inserted, run the test.
             if (r.succeeded()) {
@@ -284,15 +270,17 @@ public class CredentialsAmqpIT {
     @Test
     public void testGetCredentialsNotExistingClientContext(final TestContext ctx) {
 
-        testData = new JsonObject()
-                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, DEFAULT_DEVICE_ID)
+        // Prepare the credential to insert
+        final String deviceId = helper.getRandomDeviceId(Constants.DEFAULT_TENANT);
+        final JsonObject payload = new JsonObject()
+                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, deviceId)
                 .put(CredentialsConstants.FIELD_TYPE, CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD)
                 .put(CredentialsConstants.FIELD_AUTH_ID, CREDENTIALS_AUTHID1)
                 .put(CredentialsConstants.FIELD_SECRETS, getAuthId1Secrets());
 
         final Async done = ctx.async();
         // Insert it into the device Registry
-        registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
+        helper.registry.addCredentials(Constants.DEFAULT_TENANT, payload).setHandler(r -> {
 
             // it's successfully inserted, run the test.
             if (r.succeeded()) {
@@ -323,15 +311,17 @@ public class CredentialsAmqpIT {
     @Test
     public void testGetCredentialsReturnsCredentialsDefaultDeviceIdAndIsEnabled(final TestContext ctx) {
 
-        testData = new JsonObject()
-                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, DEFAULT_DEVICE_ID)
+        // Prepare the credential to insert
+        final String deviceId = helper.getRandomDeviceId(Constants.DEFAULT_TENANT);
+        final JsonObject payload = new JsonObject()
+                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, deviceId)
                 .put(CredentialsConstants.FIELD_TYPE, CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD)
                 .put(CredentialsConstants.FIELD_AUTH_ID, CREDENTIALS_AUTHID1)
                 .put(CredentialsConstants.FIELD_SECRETS, getAuthId1Secrets());
 
         final Async done = ctx.async();
         // Insert it into the device Registry
-        registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
+        helper.registry.addCredentials(Constants.DEFAULT_TENANT, payload).setHandler(r -> {
 
             // it's successfully inserted, run the test.
             if (r.succeeded()) {
@@ -339,7 +329,7 @@ public class CredentialsAmqpIT {
                 credentialsClient
                     .get(CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, CREDENTIALS_AUTHID1)
                     .setHandler(ctx.asyncAssertSuccess(result -> {
-                        assertTrue(checkPayloadGetCredentialsContainsDefaultDeviceIdAndReturnEnabled(result));
+                        assertTrue(checkPayloadGetCredentialsContainsDeviceIdAndReturnEnabled(result, deviceId));
                         done.complete();
                     }));
             }else {
@@ -358,15 +348,17 @@ public class CredentialsAmqpIT {
     @Test
     public void testGetCredentialsReturnsMultipleSecrets(final TestContext ctx) {
 
-        testData = new JsonObject()
-                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, DEFAULT_DEVICE_ID)
+        // Prepare the credential to insert
+        final String deviceId = helper.getRandomDeviceId(Constants.DEFAULT_TENANT);
+        final JsonObject payload = new JsonObject()
+                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, deviceId)
                 .put(CredentialsConstants.FIELD_TYPE, CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD)
                 .put(CredentialsConstants.FIELD_AUTH_ID, CREDENTIALS_AUTHID1)
                 .put(CredentialsConstants.FIELD_SECRETS, getAuthId1Secrets());
 
         final Async done = ctx.async();
         // Insert it into the device Registry
-        registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
+        helper.registry.addCredentials(Constants.DEFAULT_TENANT, payload).setHandler(r -> {
 
             // it's successfully inserted, run the test.
             if (r.succeeded()) {
@@ -393,15 +385,17 @@ public class CredentialsAmqpIT {
     @Test
     public void testGetCredentialsFirstSecretCorrectPassword(final TestContext ctx) {
 
-        testData = new JsonObject()
-                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, DEFAULT_DEVICE_ID)
+        // Prepare the credential to insert
+        final String deviceId = helper.getRandomDeviceId(Constants.DEFAULT_TENANT);
+        final JsonObject payload = new JsonObject()
+                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, deviceId)
                 .put(CredentialsConstants.FIELD_TYPE, CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD)
                 .put(CredentialsConstants.FIELD_AUTH_ID, CREDENTIALS_AUTHID1)
                 .put(CredentialsConstants.FIELD_SECRETS, getAuthId1Secrets());
 
         final Async done = ctx.async();
         // Insert it into the device Registry
-        registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
+        helper.registry.addCredentials(Constants.DEFAULT_TENANT, payload).setHandler(r -> {
 
             // it's successfully inserted, run the test.
             if (r.succeeded()) {
@@ -427,15 +421,17 @@ public class CredentialsAmqpIT {
     @Test
     public void testGetCredentialsFirstSecretCurrentlyActiveTimeInterval(final TestContext ctx) {
 
-        testData = new JsonObject()
-                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, DEFAULT_DEVICE_ID)
+        // Prepare the credential to insert
+        final String deviceId = helper.getRandomDeviceId(Constants.DEFAULT_TENANT);
+        final JsonObject payload = new JsonObject()
+                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, deviceId)
                 .put(CredentialsConstants.FIELD_TYPE, CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD)
                 .put(CredentialsConstants.FIELD_AUTH_ID, CREDENTIALS_AUTHID1)
                 .put(CredentialsConstants.FIELD_SECRETS, getAuthId1Secrets());
 
         final Async done = ctx.async();
         // Insert it into the device Registry
-        registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
+        helper.registry.addCredentials(Constants.DEFAULT_TENANT, payload).setHandler(r -> {
 
             // it's successfully inserted, run the test.
             if (r.succeeded()) {
@@ -461,8 +457,10 @@ public class CredentialsAmqpIT {
     @Test
     public void testGetCredentialsPresharedKeyIsNotEnabled(final TestContext ctx) {
 
-        testData = new JsonObject()
-                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, DEFAULT_DEVICE_ID)
+        // Prepare the credential to insert
+        final String deviceId = helper.getRandomDeviceId(Constants.DEFAULT_TENANT);
+        final JsonObject payload = new JsonObject()
+                .put(CredentialsConstants.FIELD_PAYLOAD_DEVICE_ID, deviceId)
                 .put(CredentialsConstants.FIELD_TYPE, CredentialsConstants.SECRETS_TYPE_PRESHARED_KEY)
                 .put(CredentialsConstants.FIELD_AUTH_ID, CREDENTIALS_AUTHID2)
                 .put(CredentialsConstants.FIELD_ENABLED, false)
@@ -476,14 +474,14 @@ public class CredentialsAmqpIT {
 
         final Async done = ctx.async();
         // Insert it into the device Registry
-        registryHttpClient.addCredentials(Constants.DEFAULT_TENANT, testData).setHandler(r -> {
+        helper.registry.addCredentials(Constants.DEFAULT_TENANT, payload).setHandler(r -> {
 
             // it's successfully inserted, run the test.
             if (r.succeeded()) {
                 credentialsClient
                     .get(CredentialsConstants.SECRETS_TYPE_PRESHARED_KEY, CREDENTIALS_AUTHID2)
                     .setHandler(ctx.asyncAssertSuccess(result -> {
-                        assertFalse(checkPayloadGetCredentialsContainsDefaultDeviceIdAndReturnEnabled(result));
+                        assertFalse(checkPayloadGetCredentialsContainsDeviceIdAndReturnEnabled(result, deviceId));
                         done.complete();
                     }));
             }else {
@@ -580,11 +578,11 @@ public class CredentialsAmqpIT {
         assertTrue(secrets.size() > 1); // at least 2 entries to test multiple entries
     }
 
-    private boolean checkPayloadGetCredentialsContainsDefaultDeviceIdAndReturnEnabled(final CredentialsObject payload) {
+    private boolean checkPayloadGetCredentialsContainsDeviceIdAndReturnEnabled(final CredentialsObject payload, final String deviceId) {
         assertNotNull(payload);
 
         assertNotNull(payload.getDeviceId());
-        assertEquals(payload.getDeviceId(), DEFAULT_DEVICE_ID);
+        assertEquals(payload.getDeviceId(), deviceId);
 
         return payload.isEnabled();
     }

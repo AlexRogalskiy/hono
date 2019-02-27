@@ -16,10 +16,15 @@ package org.eclipse.hono.tests.registry;
 import java.net.HttpURLConnection;
 import java.util.concurrent.TimeUnit;
 
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.unit.Async;
 import org.eclipse.hono.client.HonoClient;
 import org.eclipse.hono.client.ServiceInvocationException;
 import org.eclipse.hono.tests.IntegrationTestSupport;
 import org.eclipse.hono.util.Constants;
+import org.eclipse.hono.util.RegistrationConstants;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -96,10 +101,26 @@ public class DeviceRegistrationOptionalAmqpIT {
     @Test
     public void testAssertRegistrationSucceedsForGateway(final TestContext ctx) {
 
-        deviceRegistryclient.getOrCreateRegistrationClient(Constants.DEFAULT_TENANT)
-            .compose(client -> client.assertRegistration(DeviceRegistrationAmqpIT.DEVICE_ID_ENABLED_WITH_ENABLED_GATEWAY,
-                    DeviceRegistrationAmqpIT.GATEWAY_ID_ENABLED))
-            .setHandler(ctx.asyncAssertSuccess());
+        // Prepare the identities to insert
+        final String deviceId = helper.getRandomDeviceId(Constants.DEFAULT_TENANT);
+        final String gatewayId = helper.getRandomDeviceId(Constants.DEFAULT_TENANT);
+
+        final Async done = ctx.async();
+        // Insert into the device Registry
+        final Future fut1 = helper.registry.registerDevice(Constants.DEFAULT_TENANT, deviceId,
+                new JsonObject().put(RegistrationConstants.FIELD_ENABLED, true)
+                        .put("via", gatewayId));
+        final Future fut2 = helper.registry.registerDevice(Constants.DEFAULT_TENANT, gatewayId,
+                new JsonObject().put(RegistrationConstants.FIELD_ENABLED, true));
+
+        CompositeFuture.all(fut1, fut2).setHandler(r -> {
+            // verify
+            deviceRegistryclient.getOrCreateRegistrationClient(Constants.DEFAULT_TENANT)
+                    .compose(client -> client.assertRegistration(deviceId, gatewayId))
+                    .setHandler(ctx.asyncAssertSuccess());
+            done.complete();
+        });
+        done.await();
     }
 
     /**
@@ -111,10 +132,26 @@ public class DeviceRegistrationOptionalAmqpIT {
     @Test
     public void testAssertRegistrationFailsForDisabledGateway(final TestContext ctx) {
 
-        deviceRegistryclient.getOrCreateRegistrationClient(Constants.DEFAULT_TENANT)
-            .compose(client -> client.assertRegistration(DeviceRegistrationAmqpIT.DEVICE_ID_ENABLED_WITH_DISABLED_GATEWAY,
-                    DeviceRegistrationAmqpIT.GATEWAY_ID_DISABLED))
-            .setHandler(ctx.asyncAssertFailure(t -> assertErrorCode(t, HttpURLConnection.HTTP_FORBIDDEN, ctx)));
+        // Prepare the identities to insert
+        final String deviceId = helper.getRandomDeviceId(Constants.DEFAULT_TENANT);
+        final String gatewayId = helper.getRandomDeviceId(Constants.DEFAULT_TENANT);
+
+        final Async done = ctx.async();
+        // Insert into the device Registry
+        final Future fut1 = helper.registry.registerDevice(Constants.DEFAULT_TENANT, deviceId,
+                new JsonObject().put(RegistrationConstants.FIELD_ENABLED, true)
+                        .put("via", gatewayId));
+        final Future fut2 = helper.registry.registerDevice(Constants.DEFAULT_TENANT, gatewayId,
+                new JsonObject().put(RegistrationConstants.FIELD_ENABLED, false));
+
+        CompositeFuture.all(fut1, fut2).setHandler(r -> {
+            // verify
+            deviceRegistryclient.getOrCreateRegistrationClient(Constants.DEFAULT_TENANT)
+                    .compose(client -> client.assertRegistration(deviceId, gatewayId))
+                    .setHandler(ctx.asyncAssertFailure(t -> assertErrorCode(t, HttpURLConnection.HTTP_FORBIDDEN, ctx)));
+            done.complete();
+        });
+        done.await();
     }
 
     /**
@@ -126,10 +163,29 @@ public class DeviceRegistrationOptionalAmqpIT {
     @Test
     public void testAssertRegistrationFailsForUnauthorizedGateway(final TestContext ctx) {
 
-        deviceRegistryclient.getOrCreateRegistrationClient(Constants.DEFAULT_TENANT)
-            .compose(client -> client.assertRegistration(DeviceRegistrationAmqpIT.DEVICE_ID_ENABLED_WITH_ENABLED_GATEWAY,
-                    DeviceRegistrationAmqpIT.GATEWAY_ID_ENABLED_2))
-            .setHandler(ctx.asyncAssertFailure(t -> assertErrorCode(t, HttpURLConnection.HTTP_FORBIDDEN, ctx)));
+        // Prepare the identities to insert
+        final String deviceId = helper.getRandomDeviceId(Constants.DEFAULT_TENANT);
+        final String gatewayId = helper.getRandomDeviceId(Constants.DEFAULT_TENANT);
+        final String gatewayId2 = helper.getRandomDeviceId(Constants.DEFAULT_TENANT);
+
+        final Async done = ctx.async();
+        // Insert into the device Registry
+        final Future fut1 = helper.registry.registerDevice(Constants.DEFAULT_TENANT, deviceId,
+                new JsonObject().put(RegistrationConstants.FIELD_ENABLED, true)
+                        .put("via", gatewayId));
+        final Future fut2 = helper.registry.registerDevice(Constants.DEFAULT_TENANT, gatewayId,
+                new JsonObject().put(RegistrationConstants.FIELD_ENABLED, true));
+        final Future fut3 = helper.registry.registerDevice(Constants.DEFAULT_TENANT, gatewayId2,
+                new JsonObject().put(RegistrationConstants.FIELD_ENABLED, true));
+
+        CompositeFuture.all(fut1, fut2, fut3).setHandler(r -> {
+            // verify
+            deviceRegistryclient.getOrCreateRegistrationClient(Constants.DEFAULT_TENANT)
+                    .compose(client -> client.assertRegistration(deviceId, gatewayId2))
+                    .setHandler(ctx.asyncAssertFailure(t -> assertErrorCode(t, HttpURLConnection.HTTP_FORBIDDEN, ctx)));
+            done.complete();
+        });
+        done.await();
     }
 
     private static void assertErrorCode(final Throwable error, final int expectedErrorCode, final TestContext ctx) {
