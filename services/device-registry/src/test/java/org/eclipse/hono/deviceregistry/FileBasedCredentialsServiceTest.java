@@ -15,10 +15,7 @@ package org.eclipse.hono.deviceregistry;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
@@ -242,12 +239,6 @@ public class FileBasedCredentialsServiceTest extends AbstractCompleteCredentials
         props.setFilename(FILE_NAME);
         props.setStartEmpty(true);
         when(fileSystem.existsBlocking(props.getFilename())).thenReturn(Boolean.TRUE);
-        doAnswer(invocation -> {
-            final Buffer data = DeviceRegistryTestUtils.readFile(FILE_NAME);
-            final Handler handler = invocation.getArgument(1);
-            handler.handle(Future.succeededFuture(data));
-            return null;
-        }).when(fileSystem).readFile(eq(props.getFilename()), any(Handler.class));
 
         // WHEN the service is started
         final Async startup = ctx.async();
@@ -259,7 +250,7 @@ public class FileBasedCredentialsServiceTest extends AbstractCompleteCredentials
 
         // THEN the credentials from the file are not loaded
         startup.await();
-        assertNotRegistered(svc, Constants.DEFAULT_TENANT, "sensor1", CredentialsConstants.SECRETS_TYPE_HASHED_PASSWORD, ctx);
+        verify(fileSystem, never()).readFile(anyString(), any(Handler.class));
     }
 
 

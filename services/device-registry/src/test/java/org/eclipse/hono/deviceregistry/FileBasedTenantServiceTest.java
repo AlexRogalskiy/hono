@@ -226,12 +226,6 @@ public class FileBasedTenantServiceTest extends AbstractCompleteTenantServiceTes
         props.setFilename(FILE_NAME);
         props.setStartEmpty(true);
         when(fileSystem.existsBlocking(props.getFilename())).thenReturn(Boolean.TRUE);
-        doAnswer(invocation -> {
-            final Buffer data = DeviceRegistryTestUtils.readFile(FILE_NAME);
-            final Handler handler = invocation.getArgument(1);
-            handler.handle(Future.succeededFuture(data));
-            return null;
-        }).when(fileSystem).readFile(eq(props.getFilename()), any(Handler.class));
 
         // WHEN the service is started
         final Async startup = ctx.async();
@@ -243,7 +237,7 @@ public class FileBasedTenantServiceTest extends AbstractCompleteTenantServiceTes
 
         // THEN the credentials from the file are loaded
         startup.await();
-        assertTenantDoesNotExist(svc, Constants.DEFAULT_TENANT, ctx);
+        verify(fileSystem, never()).readFile(anyString(), any(Handler.class));
     }
 
     /**

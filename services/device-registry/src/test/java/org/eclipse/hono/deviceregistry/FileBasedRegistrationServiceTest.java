@@ -274,12 +274,6 @@ public class FileBasedRegistrationServiceTest extends AbstractCompleteRegistrati
         props.setFilename(FILE_NAME);
         props.setStartEmpty(true);
         when(fileSystem.existsBlocking(props.getFilename())).thenReturn(Boolean.TRUE);
-        doAnswer(invocation -> {
-            final Buffer data = DeviceRegistryTestUtils.readFile(FILE_NAME);
-            final Handler handler = invocation.getArgument(1);
-            handler.handle(Future.succeededFuture(data));
-            return null;
-        }).when(fileSystem).readFile(eq(props.getFilename()), any(Handler.class));
 
         // WHEN the service is started
         final Async startup = ctx.async();
@@ -291,7 +285,7 @@ public class FileBasedRegistrationServiceTest extends AbstractCompleteRegistrati
 
         // THEN the device identities from the file are not loaded
         startup.await();
-        assertThat(registrationService.getDevice(TENANT, DEVICE).getStatus(), is(HttpURLConnection.HTTP_NOT_FOUND));
+        verify(fileSystem, never()).readFile(anyString(), any(Handler.class));
     }
 
     /**
