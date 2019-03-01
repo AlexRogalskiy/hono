@@ -71,6 +71,7 @@ public class CacheTenantService extends CompleteBaseTenantService<CacheTenantCon
             if (tenant != null){
                 resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_CONFLICT)));
             }
+            //TODO should we handle the 'else' case?
         } else {
             tenantsCache.putIfAbsentAsync(tenantId, new RegistryTenantObject(tenantDetails)).thenAccept(result -> {
                 if (result == null) {
@@ -141,8 +142,6 @@ public class CacheTenantService extends CompleteBaseTenantService<CacheTenantCon
 
     // infinispan async querying coming soon™
     private RegistryTenantObject searchByCert(final String subjectDnName){
-
-        System.out.println("Getting tenant with X500 SubjectDn : "+subjectDnName);
 
         final QueryFactory queryFactory = Search.getQueryFactory(tenantsCache);
         final Query query = queryFactory

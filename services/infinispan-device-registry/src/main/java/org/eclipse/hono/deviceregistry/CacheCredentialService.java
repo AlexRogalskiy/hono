@@ -74,7 +74,6 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
     @Override
     public void add(final String tenantId, final JsonObject credentialsJson, final Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
 
-        System.out.println("ADD : "+credentialsJson);
         final CredentialsObject credentials = Optional.ofNullable(credentialsJson)
                 .map(json -> json.mapTo(CredentialsObject.class)).orElse(null);
 
@@ -82,8 +81,8 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
         final RegistryCredentialObject registryCredential = new RegistryCredentialObject(credentials, tenantId, credentialsJson);
 
         credentialsCache.putIfAbsentAsync(key, registryCredential).thenAccept(result -> {
-            if ( result == null){
-                    resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_CREATED)));
+            if (result == null) {
+                resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_CREATED)));
             } else {
                 resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_CONFLICT)));
             }
@@ -122,11 +121,11 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
 
         final CredentialsKey key = new CredentialsKey(tenantId, authId, type);
 
-       credentialsCache.getAsync(key).thenAccept(credential -> {
+        credentialsCache.getAsync(key).thenAccept(credential -> {
             if (credential == null) {
-               resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
-            } else if ( !clientContext.isEmpty()) {
-                if ( contextMatches(clientContext, credential.getOriginalJson()) ) {
+                resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
+            } else if (!clientContext.isEmpty()) {
+                if (contextMatches(clientContext, credential.getOriginalJson())) {
                     resultHandler.handle(Future.succeededFuture(
                             CredentialsResult.from(HttpURLConnection.HTTP_OK,
                                     JsonObject.mapFrom(credential.getOriginalJson()), CacheDirective.noCacheDirective())));
@@ -185,7 +184,7 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
 
         final JsonArray creds = new JsonArray();
 
-        queryAllCredentialsForDevice(tenantId, deviceId).forEach( result ->{
+        queryAllCredentialsForDevice(tenantId, deviceId).forEach(result -> {
             creds.add(JsonObject.mapFrom(result.getOriginalJson()));
         });
 

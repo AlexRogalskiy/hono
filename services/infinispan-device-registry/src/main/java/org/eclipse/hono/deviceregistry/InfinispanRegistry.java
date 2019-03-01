@@ -25,7 +25,7 @@ import org.springframework.context.annotation.Configuration;
  * and <a href="https://www.eclipse.org/hono/api/Credentials-API/">Credentials API</a>.
  * </p>
  */
-@ComponentScan(basePackages = { "org.eclipse.hono.service.auth", "org.eclipse.hono.deviceregistry"})
+@ComponentScan(basePackages = {"org.eclipse.hono.service.auth", "org.eclipse.hono.deviceregistry"})
 @Configuration
 @EnableAutoConfiguration
 public class InfinispanRegistry extends Application {
@@ -36,7 +36,6 @@ public class InfinispanRegistry extends Application {
      * @param args command line arguments to pass to the server.
      */
     public static void main(final String[] args) {
-
         SpringApplication.run(InfinispanRegistry.class, args);
     }
 }
