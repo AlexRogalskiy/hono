@@ -10,10 +10,10 @@ hono:
     port: 35672
     name: device-registry
     validation:
-      certPath: src/main/resources/jwt/auth-server-cert.pem
+      certPath: ../../demo-certs/certs/auth-server-cert.pem
   registry:
     amqp:
-      Port: 25671
+      Port: 25672
       insecurePortEnabled: true
       insecurePortBindAddress: 0.0.0.0
       insecurePort: 25672
