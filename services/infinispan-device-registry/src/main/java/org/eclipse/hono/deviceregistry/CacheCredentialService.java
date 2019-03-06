@@ -150,9 +150,12 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
         final RegistryCredentialObject registryCredential = new RegistryCredentialObject(credentials, tenantId, otherKeys);
 
         credentialsCache.replaceAsync(key, registryCredential).thenAccept(result -> {
-                    resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
-                }
-        );
+            if (result == null){
+                resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
+            } else {
+                resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
+            }
+        });
     }
 
     @Override
@@ -160,23 +163,32 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
 
         final CredentialsKey key = new CredentialsKey(tenantId, authId, type);
         credentialsCache.removeAsync(key).thenAccept(result -> {
-                    resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
+                    if (result == null){
+                        resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
+                    } else {
+                        resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
+                    }
                 }
         );
     }
 
+    //TODO : use futures and composeAll to be Async.
     @Override
     public void removeAll(final String tenantId, final String deviceId, final Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
 
         final List<RegistryCredentialObject>  matches = queryAllCredentialsForDevice(tenantId, deviceId);
-        matches.forEach(registryCredential -> {
-            final CredentialsKey key = new CredentialsKey(
-                    tenantId,
-                    registryCredential.getOriginalJson().getString(CredentialsConstants.FIELD_AUTH_ID),
-                    registryCredential.getOriginalJson().getString(CredentialsConstants.FIELD_TYPE));
-            credentialsCache.remove(key);
-        });
-        resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
+        if (matches.isEmpty()){
+            resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
+        } else {
+            matches.forEach(registryCredential -> {
+                final CredentialsKey key = new CredentialsKey(
+                        tenantId,
+                        registryCredential.getOriginalJson().getString(CredentialsConstants.FIELD_AUTH_ID),
+                        registryCredential.getOriginalJson().getString(CredentialsConstants.FIELD_TYPE));
+                credentialsCache.remove(key);
+            });
+            resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
+        }
     }
 
     @Override
@@ -200,10 +212,10 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
         }
     }
 
+    // TODO : async request
     private List<RegistryCredentialObject> queryAllCredentialsForDevice(final String tenantId, final String deviceId){
         // Obtain a query factory for the cache
         final QueryFactory queryFactory = Search.getQueryFactory(credentialsCache);
-        // TODO : async request ?
         final Query query = queryFactory.from(RegistryCredentialObject.class)
                 .having("deviceId").eq(deviceId)
                 .and().having("tenantId").eq(tenantId)

@@ -69,7 +69,11 @@ public class CacheRegistrationService extends CompleteBaseRegistrationService<Ca
 
         final RegistrationKey key = new RegistrationKey(tenantId, deviceId);
         registrationCache.replaceAsync(key, otherKeys).thenAccept( result -> {
+            if ( result == null){
+                resultHandler.handle(Future.succeededFuture(RegistrationResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
+            } else {
                 resultHandler.handle(Future.succeededFuture(RegistrationResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
+            }
         });
     }
 
@@ -95,7 +99,7 @@ public class CacheRegistrationService extends CompleteBaseRegistrationService<Ca
                 resultHandler.handle(Future.succeededFuture(RegistrationResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
             } else {
                 resultHandler.handle(Future.succeededFuture(
-                        RegistrationResult.from(HttpURLConnection.HTTP_OK, result)));
+                        RegistrationResult.from(HttpURLConnection.HTTP_OK, getResultPayload(deviceId, result))));
             }
         });
     }

@@ -15,7 +15,7 @@
   <parent>
     <groupId>org.eclipse.hono</groupId>
     <artifactId>hono-services</artifactId>
-    <version>0.9-SNAPSHOT</version>
+    <version>1.0-M1-SNAPSHOT</version>
   </parent>
   <artifactId>infinispan-device-registry</artifactId>
   <name>Hono Device Registry built with Infinispan</name>

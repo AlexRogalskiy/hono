@@ -64,23 +64,25 @@ public class CacheTenantService extends CompleteBaseTenantService<CacheTenantCon
 
         final TenantObject tenantDetails = Optional.ofNullable(tenantObj)
                 .map(json -> json.mapTo(TenantObject.class)).orElse(null);
+        tenantDetails.setTenantId(tenantId);
 
         //verify if a duplicate cert exists
-        if (tenantDetails.getTrustedCaSubjectDn() != null){
+        if (tenantDetails.getTrustedCaSubjectDn() != null) {
             final RegistryTenantObject tenant = searchByCert(tenantDetails.getTrustedCaSubjectDn().getName());
-            if (tenant != null){
+            if (tenant != null) {
+                resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_CONFLICT)));
+                return;
+            }
+        }
+
+        tenantsCache.putIfAbsentAsync(tenantId, new RegistryTenantObject(tenantDetails)).thenAccept(result -> {
+            if (result == null) {
+                resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_CREATED)));
+            } else {
                 resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_CONFLICT)));
             }
-            //TODO should we handle the 'else' case?
-        } else {
-            tenantsCache.putIfAbsentAsync(tenantId, new RegistryTenantObject(tenantDetails)).thenAccept(result -> {
-                if (result == null) {
-                    resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_CREATED)));
-                } else {
-                    resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_CONFLICT)));
-                }
-            });
-        }
+        });
+
     }
 
     @Override
@@ -90,16 +92,19 @@ public class CacheTenantService extends CompleteBaseTenantService<CacheTenantCon
                 .map(json -> json.mapTo(TenantObject.class)).orElse(null);
 
         //verify if a duplicate cert exists
-        if (tenantDetails.getTrustedCaSubjectDn() != null){
+        if (tenantDetails.getTrustedCaSubjectDn() != null) {
             final RegistryTenantObject tenant = searchByCert(tenantDetails.getTrustedCaSubjectDn().getName());
-             if (tenant != null) {
-                 resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_CONFLICT)));
-             }
-        } else {
+            if (tenant != null) {
+                resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_CONFLICT)));
+                return;
+            }
+        }
+        if (tenantsCache.containsKey(tenantId)) {
             tenantsCache.replaceAsync(tenantId, new RegistryTenantObject(tenantDetails)).thenAccept(result -> {
-                        resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
-                    }
-            );
+                resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
+            });
+        } else {
+            resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
         }
     }
 
@@ -107,9 +112,12 @@ public class CacheTenantService extends CompleteBaseTenantService<CacheTenantCon
     public void remove(final String tenantId, final Handler<AsyncResult<TenantResult<JsonObject>>> resultHandler) {
 
         tenantsCache.removeAsync(tenantId).thenAccept(result -> {
-                    resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
-                }
-        );
+            if (result != null) {
+                resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
+            } else {
+                resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
+            }
+        });
     }
 
     @Override
@@ -131,12 +139,17 @@ public class CacheTenantService extends CompleteBaseTenantService<CacheTenantCon
     @Override
     public void get(final X500Principal subjectDn, final Span span, final Handler<AsyncResult<TenantResult<JsonObject>>> resultHandler) {
 
-        final RegistryTenantObject searchResult = searchByCert(subjectDn.getName());
-
-        if (searchResult == null) {
-            resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
+        if (subjectDn == null) {
+            resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_BAD_REQUEST)));
         } else {
-            TenantResult.from(HttpURLConnection.HTTP_OK, JsonObject.mapFrom(searchResult.getTenantObject()));
+
+            final RegistryTenantObject searchResult = searchByCert(subjectDn.getName());
+
+            if (searchResult == null) {
+                resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
+            } else {
+                TenantResult.from(HttpURLConnection.HTTP_OK, JsonObject.mapFrom(searchResult.getTenantObject()));
+            }
         }
     }
 
