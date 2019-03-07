@@ -36,9 +36,11 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 
 import java.net.HttpURLConnection;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -180,14 +182,17 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
         if (matches.isEmpty()){
             resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
         } else {
+            final List<CompletableFuture<RegistryCredentialObject>> futureResultList = new ArrayList();
             matches.forEach(registryCredential -> {
                 final CredentialsKey key = new CredentialsKey(
                         tenantId,
                         registryCredential.getOriginalJson().getString(CredentialsConstants.FIELD_AUTH_ID),
                         registryCredential.getOriginalJson().getString(CredentialsConstants.FIELD_TYPE));
-                credentialsCache.remove(key);
+                futureResultList.add( credentialsCache.removeAsync(key));
             });
-            resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
+            CompletableFuture.allOf(futureResultList.toArray(new CompletableFuture[futureResultList.size()]))
+                    .thenAccept( r->
+                        resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NO_CONTENT))));
         }
     }
 

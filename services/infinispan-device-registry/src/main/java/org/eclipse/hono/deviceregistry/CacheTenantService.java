@@ -99,13 +99,16 @@ public class CacheTenantService extends CompleteBaseTenantService<CacheTenantCon
                 return;
             }
         }
-        if (tenantsCache.containsKey(tenantId)) {
-            tenantsCache.replaceAsync(tenantId, new RegistryTenantObject(tenantDetails)).thenAccept(result -> {
-                resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
-            });
-        } else {
-            resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
-        }
+
+        tenantsCache.containsKeyAsync(tenantId).thenAccept(containsKey -> {
+            if (containsKey) {
+                tenantsCache.replaceAsync(tenantId, new RegistryTenantObject(tenantDetails)).thenAccept(result -> {
+                    resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NO_CONTENT)));
+                });
+            } else {
+                resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
+            }
+        });
     }
 
     @Override
@@ -148,7 +151,8 @@ public class CacheTenantService extends CompleteBaseTenantService<CacheTenantCon
             if (searchResult == null) {
                 resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
             } else {
-                TenantResult.from(HttpURLConnection.HTTP_OK, JsonObject.mapFrom(searchResult.getTenantObject()));
+                resultHandler.handle(Future.succeededFuture(TenantResult.from(HttpURLConnection.HTTP_OK,
+                        JsonObject.mapFrom(searchResult.getTenantObject()))));
             }
         }
     }
