@@ -1,0 +1,69 @@
+apiVersion: v1
+kind: Template
+metadata:
+
+  name: hono-infinispan-device-registry
+
+  annotations:
+    description: "This is a simple template to use the the hono device registry"
+    iconClass: "pficon-topology"
+    tags: "iot"
+    openshift.io/display-name: "Eclipse Hono™ Infinispan™ Device Registry"
+
+objects:
+#import fabric8 image
+ - kind: ImageStream
+   apiVersion: v1
+   metadata:
+    name: fabric8-s2i-java
+   spec:
+    tags:
+    - from:
+        kind: DockerImage
+        name: docker.io/fabric8/s2i-java:3.0-java11
+      importPolicy:
+        scheduled: true
+      name: "3.0-java11"
+      referencePolicy:
+        type: Source
+
+#declare our image
+ - kind: ImageStream
+   apiVersion: v1
+   metadata:
+    name: hono-infinispan-device-registry
+
+#build
+ - kind: BuildConfig
+   apiVersion: v1
+   metadata:
+    name: hono-infinispan-device-registry
+    labels:
+      app: hono-service
+   spec:
+    triggers:
+      - type: ImageChange
+      - type: ConfigChange
+    source:
+      type: Git
+      git:
+        uri: https://github.com/redhat-iot/hono
+        ref: infinispan-dr
+    strategy:
+      type: source
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: fabric8-s2i-java:3.0-java11
+        env:
+        - name: MAVEN_ARGS
+          value: install
+        - name: MAVEN_ARGS_APPEND
+          value: -Dcheckstyle.skip -Dmaven.test.skip=true -DskipTests
+        - name: ARTIFACT_DIR
+          value: services/infinispan-device-registry/target/
+    output:
+      to:
+        kind: ImageStreamTag
+        name: hono-infinispan-device-registry:latest
+
