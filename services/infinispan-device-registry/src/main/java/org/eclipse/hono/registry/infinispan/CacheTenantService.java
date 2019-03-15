@@ -20,10 +20,9 @@ import io.vertx.core.json.JsonObject;
 import org.eclipse.hono.service.tenant.CompleteBaseTenantService;
 import org.eclipse.hono.util.TenantObject;
 import org.eclipse.hono.util.TenantResult;
-import org.infinispan.Cache;
-import org.infinispan.configuration.cache.ConfigurationBuilder;
-import org.infinispan.manager.EmbeddedCacheManager;
-import org.infinispan.query.Search;
+import org.infinispan.client.hotrod.RemoteCache;
+import org.infinispan.client.hotrod.RemoteCacheManager;
+import org.infinispan.client.hotrod.Search;
 import org.infinispan.query.dsl.Query;
 import org.infinispan.query.dsl.QueryFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,11 +47,11 @@ import java.util.Optional;
 @Primary
 public class CacheTenantService extends CompleteBaseTenantService<CacheTenantConfigProperties> {
 
-    Cache<String, RegistryTenantObject> tenantsCache;
+    private final RemoteCache<String, RegistryTenantObject> tenantsCache;
 
     @Autowired
-    protected CacheTenantService(final EmbeddedCacheManager cacheManager) {
-        this.tenantsCache = cacheManager.createCache("tenants", new ConfigurationBuilder().build());
+    protected CacheTenantService(final RemoteCacheManager cacheManager) {
+        this.tenantsCache = cacheManager.getCache("tenants");
     }
 
     @Override

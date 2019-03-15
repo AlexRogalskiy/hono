@@ -29,13 +29,13 @@
         </dependency>
         <dependency>
             <groupId>org.infinispan</groupId>
-            <artifactId>infinispan-core</artifactId>
+            <artifactId>infinispan-query</artifactId>
             <version>9.4.6.Final</version>
         </dependency>
         <dependency>
             <groupId>org.infinispan</groupId>
-            <artifactId>infinispan-query</artifactId>
-            <version>9.4.6.Final</version>
+            <artifactId>infinispan-client-hotrod</artifactId>
+            <version>9.4.9.Final</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.hono</groupId>

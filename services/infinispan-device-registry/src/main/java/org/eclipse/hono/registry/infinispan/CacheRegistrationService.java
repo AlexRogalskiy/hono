@@ -19,6 +19,8 @@ import io.vertx.core.json.JsonObject;
 import org.eclipse.hono.service.registration.CompleteBaseRegistrationService;
 import org.eclipse.hono.util.RegistrationResult;
 import org.infinispan.Cache;
+import org.infinispan.client.hotrod.RemoteCache;
+import org.infinispan.client.hotrod.RemoteCacheManager;
 import org.infinispan.configuration.cache.ConfigurationBuilder;
 import org.infinispan.manager.EmbeddedCacheManager;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,11 +41,11 @@ import java.net.HttpURLConnection;
 @Primary
 public class CacheRegistrationService extends CompleteBaseRegistrationService<CacheRegistrationConfigProperties> {
 
-    Cache<RegistrationKey, JsonObject> registrationCache;
+    private final RemoteCache<RegistrationKey, JsonObject> registrationCache;
 
     @Autowired
-    protected CacheRegistrationService(final EmbeddedCacheManager cacheManager) {
-        this.registrationCache = cacheManager.createCache("registration", new ConfigurationBuilder().build());
+    protected CacheRegistrationService(final RemoteCacheManager cacheManager) {
+        this.registrationCache = cacheManager.getCache("registration");
     }
 
     @Override

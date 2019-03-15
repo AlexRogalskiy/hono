@@ -24,11 +24,10 @@ import org.eclipse.hono.util.CacheDirective;
 import org.eclipse.hono.util.CredentialsConstants;
 import org.eclipse.hono.util.CredentialsObject;
 import org.eclipse.hono.util.CredentialsResult;
-import org.infinispan.Cache;
 
-import org.infinispan.configuration.cache.ConfigurationBuilder;
-import org.infinispan.manager.EmbeddedCacheManager;
-import org.infinispan.query.Search;
+import org.infinispan.client.hotrod.RemoteCache;
+import org.infinispan.client.hotrod.RemoteCacheManager;
+import org.infinispan.client.hotrod.Search;
 import org.infinispan.query.dsl.Query;
 import org.infinispan.query.dsl.QueryFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,7 +54,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Primary
 public class CacheCredentialService extends CompleteBaseCredentialsService<CacheCredentialConfigProperties> {
 
-     private final Cache<CredentialsKey, RegistryCredentialObject> credentialsCache;
+    private final RemoteCache<CredentialsKey, RegistryCredentialObject> credentialsCache;
 
     /**
      * Creates a new service instance for a password encoder.
@@ -64,9 +63,9 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
      * @throws NullPointerException if encoder is {@code null}.
      */
     @Autowired
-    protected CacheCredentialService(final EmbeddedCacheManager cacheManager, final HonoPasswordEncoder pwdEncoder) {
+    protected CacheCredentialService(final RemoteCacheManager cacheManager, final HonoPasswordEncoder pwdEncoder) {
         super(pwdEncoder);
-        this.credentialsCache = cacheManager.createCache("credentials", new ConfigurationBuilder().build());
+        this.credentialsCache = cacheManager.getCache("credentials");
     }
 
     @Override
