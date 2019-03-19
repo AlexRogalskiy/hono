@@ -12,7 +12,16 @@
  *******************************************************************************/
 package org.eclipse.hono.registry.infinispan;
 
+import io.vertx.core.json.JsonObject;
 import org.eclipse.hono.util.TenantObject;
+import org.hibernate.search.annotations.Field;
+import org.infinispan.commons.marshall.Externalizer;
+import org.infinispan.commons.marshall.SerializeWith;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.io.Serializable;
 
 /**
  * A custom class to be used as value in the backend key-value storage.
@@ -20,14 +29,16 @@ import org.eclipse.hono.util.TenantObject;
  *
  *  See {@link CacheTenantService CacheTenantService} class.
  */
-public class RegistryTenantObject {
+//@SerializeWith(RegistryTenantObject.Serializer.class)
+public class RegistryTenantObject implements Serializable {
 
-    //TODO add infinispan annotations
+    @Field
     private final String tenantId;
     // Matching TenantConstants.FIELD_PAYLOAD_TRUSTED_CA;
+    @Field
     private String trustedCa;
 
-    private TenantObject tenantObject;
+    private String tenantObject;
 
 
     /**
@@ -43,10 +54,18 @@ public class RegistryTenantObject {
             this.trustedCa = null;
         }
 
-        this.tenantObject = tenant;
+        this.tenantObject = JsonObject.mapFrom(tenant).encode();
     }
 
     public TenantObject getTenantObject() {
-        return tenantObject;
+        return new JsonObject(tenantObject).mapTo(TenantObject.class);
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public String getTrustedCa() {
+        return trustedCa;
     }
 }

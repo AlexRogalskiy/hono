@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.eclipse.hono.registry.infinispan;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 /**
@@ -20,11 +21,11 @@ import java.util.Objects;
  *
  *  See {@link CacheCredentialService CacheCredentialService} class.
  */
-public class CredentialsKey {
+public class CredentialsKey implements Serializable {
 
-    String tenantId;
-    String authId;
-    String type;
+    final String tenantId;
+    final String authId;
+    final String type;
 
     /**
      * Creates a new CredentialsKey. Used by CacheCredentialsService.

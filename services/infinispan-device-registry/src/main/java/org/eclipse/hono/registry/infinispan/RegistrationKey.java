@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.eclipse.hono.registry.infinispan;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 /**
@@ -20,10 +21,10 @@ import java.util.Objects;
  *
  *  See {@link CacheRegistrationService CacheRegistrationService} class.
  */
-public class RegistrationKey {
+public class RegistrationKey implements Serializable {
 
-    String tenantId;
-    String deviceId;
+    final String tenantId;
+    final String deviceId;
 
     /**
      * Creates a new RegistrationKey. Used by CacheRegistrationService.

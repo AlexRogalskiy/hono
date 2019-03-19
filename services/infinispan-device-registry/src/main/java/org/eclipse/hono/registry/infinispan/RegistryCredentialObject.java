@@ -14,6 +14,9 @@ package org.eclipse.hono.registry.infinispan;
 
 import io.vertx.core.json.JsonObject;
 import org.eclipse.hono.util.CredentialsObject;
+import org.hibernate.search.annotations.Field;
+
+import java.io.Serializable;
 
 /**
  * A custom class to be used as value in the backend key-value storage.
@@ -21,11 +24,13 @@ import org.eclipse.hono.util.CredentialsObject;
  *
  *  See {@link CacheTenantService CacheTenantService} class.
  */
-public class RegistryCredentialObject {
+public class RegistryCredentialObject implements Serializable {
 
+    @Field
     private final String tenantId;
+    @Field
     private final String deviceId;
-    private final JsonObject originalJson;
+    private final String originalJson;
 
     /**
      * Create a a RegistryCredentialObject with the credentials details.
@@ -37,14 +42,18 @@ public class RegistryCredentialObject {
     public RegistryCredentialObject(final CredentialsObject honoCredential, final String tenantId, final JsonObject originalJson){
         this.tenantId = tenantId;
         this.deviceId = honoCredential.getDeviceId();
-        this.originalJson = originalJson;
+        this.originalJson = originalJson.encode();
     }
 
     public JsonObject getOriginalJson() {
-        return originalJson;
+        return new JsonObject(originalJson);
     }
 
     public String getDeviceId(){
         return deviceId;
+    }
+
+    public String getTenantId() {
+        return tenantId;
     }
 }

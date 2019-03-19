@@ -1,0 +1,24 @@
+package registry;
+
+message RegistryTenantObject {
+  required string tenantId = 1;
+  optional string trustedCa = 2;
+  required string tenantObject = 3;
+}
+
+message RegistryCredentialObject {
+  required string tenantId = 1;
+  required string deviceId = 2;
+  required string originalJson = 3;
+}
+
+message CredentialsKey {
+  required string tenantId = 1;
+  required string authId = 2;
+  required string type = 3;
+}
+
+message RegistrationKey {
+    required string tenantId = 1;
+    required string deviceId = 2;
+}

@@ -18,11 +18,8 @@ import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import org.eclipse.hono.service.registration.CompleteBaseRegistrationService;
 import org.eclipse.hono.util.RegistrationResult;
-import org.infinispan.Cache;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
-import org.infinispan.configuration.cache.ConfigurationBuilder;
-import org.infinispan.manager.EmbeddedCacheManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Repository;
@@ -41,7 +38,7 @@ import java.net.HttpURLConnection;
 @Primary
 public class CacheRegistrationService extends CompleteBaseRegistrationService<CacheRegistrationConfigProperties> {
 
-    private final RemoteCache<RegistrationKey, JsonObject> registrationCache;
+    private final RemoteCache<RegistrationKey, String> registrationCache;
 
     @Autowired
     protected CacheRegistrationService(final RemoteCacheManager cacheManager) {
@@ -57,7 +54,7 @@ public class CacheRegistrationService extends CompleteBaseRegistrationService<Ca
 
         final RegistrationKey key = new RegistrationKey(tenantId, deviceId);
 
-        registrationCache.putIfAbsentAsync(key, otherKeys).thenAccept(result -> {
+        registrationCache.putIfAbsentAsync(key, otherKeys.encode()).thenAccept(result -> {
             if ( result == null){
                     resultHandler.handle(Future.succeededFuture(RegistrationResult.from(HttpURLConnection.HTTP_CREATED)));
             } else {
@@ -70,7 +67,7 @@ public class CacheRegistrationService extends CompleteBaseRegistrationService<Ca
     public void updateDevice(final String tenantId, final String deviceId, final JsonObject otherKeys, final Handler<AsyncResult<RegistrationResult>> resultHandler) {
 
         final RegistrationKey key = new RegistrationKey(tenantId, deviceId);
-        registrationCache.replaceAsync(key, otherKeys).thenAccept( result -> {
+        registrationCache.replaceAsync(key, otherKeys.encode()).thenAccept( result -> {
             if ( result == null){
                 resultHandler.handle(Future.succeededFuture(RegistrationResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
             } else {
@@ -101,7 +98,7 @@ public class CacheRegistrationService extends CompleteBaseRegistrationService<Ca
                 resultHandler.handle(Future.succeededFuture(RegistrationResult.from(HttpURLConnection.HTTP_NOT_FOUND)));
             } else {
                 resultHandler.handle(Future.succeededFuture(
-                        RegistrationResult.from(HttpURLConnection.HTTP_OK, getResultPayload(deviceId, result))));
+                        RegistrationResult.from(HttpURLConnection.HTTP_OK, getResultPayload(deviceId, new JsonObject(result)))));
             }
         });
     }
