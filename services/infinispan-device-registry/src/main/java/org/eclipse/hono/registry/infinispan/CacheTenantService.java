@@ -51,8 +51,7 @@ public class CacheTenantService extends CompleteBaseTenantService<CacheTenantCon
 
     @Autowired
     protected CacheTenantService(final RemoteCacheManager cacheManager) {
-        //cacheManager.administration().getOrCreateCache("tenants", configutation?);
-        this.tenantsCache = cacheManager.getCache("tenants");
+        this.tenantsCache = cacheManager.administration().getOrCreateCache("tenants", "default");
     }
 
     @Override

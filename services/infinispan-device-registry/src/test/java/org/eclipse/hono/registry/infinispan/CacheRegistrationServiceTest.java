@@ -13,7 +13,6 @@
 package org.eclipse.hono.registry.infinispan;
 
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.eclipse.hono.auth.SpringBasedHonoPasswordEncoder;
 import org.eclipse.hono.service.registration.AbstractCompleteRegistrationServiceTest;
 import org.eclipse.hono.service.registration.CompleteRegistrationService;
 import org.infinispan.client.hotrod.RemoteCacheManager;
@@ -36,8 +35,8 @@ import java.util.concurrent.TimeUnit;
 @RunWith(VertxUnitRunner.class)
 public class CacheRegistrationServiceTest extends AbstractCompleteRegistrationServiceTest {
 
-    CacheRegistrationService service;
-    RemoteCacheManager manager;
+    private static CacheRegistrationService service;
+    private static RemoteCacheManager manager;
 
 
     /**
@@ -48,13 +47,14 @@ public class CacheRegistrationServiceTest extends AbstractCompleteRegistrationSe
 
     /**
      * Spin up the service using Infinispan EmbeddedCache.
+     * @throws IOException if the Protobuf spec file cannot be found.
      */
     @Before
     public void setUp() throws IOException {
         manager = new RemoteCacheManager();
-        SerializationContext serCtx = ProtoStreamMarshaller.getSerializationContext(manager);
+        final SerializationContext serCtx = ProtoStreamMarshaller.getSerializationContext(manager);
+        final FileDescriptorSource fds = new FileDescriptorSource();
 
-        FileDescriptorSource fds = new FileDescriptorSource();
         fds.addProtoFiles("registry.proto");
         serCtx.registerProtoFiles(fds);
         serCtx.registerMarshaller(new RegistryCredentialObjectMarshaller());

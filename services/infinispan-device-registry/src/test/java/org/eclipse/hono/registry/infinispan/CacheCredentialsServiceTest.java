@@ -36,8 +36,8 @@ import java.util.concurrent.TimeUnit;
 @RunWith(VertxUnitRunner.class)
 public class CacheCredentialsServiceTest extends AbstractCompleteCredentialsServiceTest {
 
-    CacheCredentialService service;
-    RemoteCacheManager manager;
+    private static CacheCredentialService service;
+    private static RemoteCacheManager manager;
 
 
     /**
@@ -48,13 +48,14 @@ public class CacheCredentialsServiceTest extends AbstractCompleteCredentialsServ
 
     /**
      * Spin up the service using Infinispan EmbeddedCache.
+     * @throws IOException if the Protobuf spec file cannot be found.
      */
     @Before
     public void setUp() throws IOException {
         manager = new RemoteCacheManager();
-        SerializationContext serCtx = ProtoStreamMarshaller.getSerializationContext(manager);
+        final SerializationContext serCtx = ProtoStreamMarshaller.getSerializationContext(manager);
+        final FileDescriptorSource fds = new FileDescriptorSource();
 
-        FileDescriptorSource fds = new FileDescriptorSource();
         fds.addProtoFiles("registry.proto");
         serCtx.registerProtoFiles(fds);
         serCtx.registerMarshaller(new RegistryCredentialObjectMarshaller());

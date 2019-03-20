@@ -65,7 +65,7 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
     @Autowired
     protected CacheCredentialService(final RemoteCacheManager cacheManager, final HonoPasswordEncoder pwdEncoder) {
         super(pwdEncoder);
-        this.credentialsCache = cacheManager.getCache("credentials");
+        this.credentialsCache = cacheManager.administration().getOrCreateCache("credentials", "default");
     }
 
     @Override
@@ -74,7 +74,6 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
 
     @Override
     public void add(final String tenantId, final JsonObject credentialsJson, final Handler<AsyncResult<CredentialsResult<JsonObject>>> resultHandler) {
-        System.out.println("adding credential");
         final CredentialsObject credentials = Optional.ofNullable(credentialsJson)
                 .map(json -> json.mapTo(CredentialsObject.class)).orElse(null);
 
@@ -84,9 +83,7 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
         credentialsCache.putIfAbsentAsync(key, registryCredential).thenAccept(result -> {
             if (result == null) {
                 resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_CREATED)));
-                System.out.println("yay");
             } else {
-                System.out.println("add conflict");
                 resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_CONFLICT)));
             }
         });
@@ -190,7 +187,6 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
                         registryCredential.getOriginalJson().getString(CredentialsConstants.FIELD_TYPE));
                 futureResultList.add( credentialsCache.removeAsync(key));
             });
-            System.out.println("waiting for the futuresssss");
             CompletableFuture.allOf(futureResultList.toArray(new CompletableFuture[futureResultList.size()]))
                     .thenAccept( r->
                         resultHandler.handle(Future.succeededFuture(CredentialsResult.from(HttpURLConnection.HTTP_NO_CONTENT))));
@@ -226,7 +222,6 @@ public class CacheCredentialService extends CompleteBaseCredentialsService<Cache
                 .having("deviceId").eq(deviceId)
                 .and().having("tenantId").eq(tenantId)
                 .build();
-        System.out.println("query ready, waiting for answer");
         // Execute the query
         return query.list();
     }

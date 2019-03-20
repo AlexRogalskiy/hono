@@ -35,9 +35,8 @@ import java.util.concurrent.TimeUnit;
 @RunWith(VertxUnitRunner.class)
 public class CacheTenantServiceTest extends AbstractCompleteTenantServiceTest {
 
-    CacheTenantService service;
-    RemoteCacheManager manager;
-
+    private static RemoteCacheManager manager;
+    private static CacheTenantService service;
 
     /**
      * Global timeout for all test cases.
@@ -47,13 +46,14 @@ public class CacheTenantServiceTest extends AbstractCompleteTenantServiceTest {
 
     /**
      * Spin up the service using Infinispan EmbeddedCache.
+     * @throws IOException if the Protobuf spec file cannot be found.
      */
     @Before
     public void setUp() throws IOException {
         manager = new RemoteCacheManager();
-        SerializationContext serCtx = ProtoStreamMarshaller.getSerializationContext(manager);
+        final SerializationContext serCtx = ProtoStreamMarshaller.getSerializationContext(manager);
+        final FileDescriptorSource fds = new FileDescriptorSource();
 
-        FileDescriptorSource fds = new FileDescriptorSource();
         fds.addProtoFiles("registry.proto");
         serCtx.registerProtoFiles(fds);
         serCtx.registerMarshaller(new RegistryCredentialObjectMarshaller());

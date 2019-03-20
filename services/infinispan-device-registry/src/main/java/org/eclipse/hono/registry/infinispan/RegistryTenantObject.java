@@ -15,12 +15,7 @@ package org.eclipse.hono.registry.infinispan;
 import io.vertx.core.json.JsonObject;
 import org.eclipse.hono.util.TenantObject;
 import org.hibernate.search.annotations.Field;
-import org.infinispan.commons.marshall.Externalizer;
-import org.infinispan.commons.marshall.SerializeWith;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.io.Serializable;
 
 /**
@@ -29,7 +24,6 @@ import java.io.Serializable;
  *
  *  See {@link CacheTenantService CacheTenantService} class.
  */
-//@SerializeWith(RegistryTenantObject.Serializer.class)
 public class RegistryTenantObject implements Serializable {
 
     @Field

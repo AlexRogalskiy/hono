@@ -42,7 +42,8 @@ public class CacheRegistrationService extends CompleteBaseRegistrationService<Ca
 
     @Autowired
     protected CacheRegistrationService(final RemoteCacheManager cacheManager) {
-        this.registrationCache = cacheManager.getCache("registration");
+        this.registrationCache = cacheManager.administration().getOrCreateCache("registration", "default");
+        //this.registrationCache = cacheManager.getCache("registration");
     }
 
     @Override
