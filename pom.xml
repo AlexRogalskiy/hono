@@ -54,19 +54,6 @@
     <url>https://ci.eclipse.org/hono/job/Hono-CI/</url>
   </ciManagement>
 
-  <distributionManagement>
-    <repository>
-      <id>repo.eclipse.org</id>
-      <name>Hono Releases</name>
-      <url>https://repo.eclipse.org/content/repositories/hono-releases/</url>
-    </repository>
-    <snapshotRepository>
-      <id>repo.eclipse.org</id>
-      <name>Hono Snapshots</name>
-      <url>https://repo.eclipse.org/content/repositories/hono-snapshots/</url>
-    </snapshotRepository>
-  </distributionManagement>
-
   <developers>
     <developer>
       <id>hkonsyk</id>
